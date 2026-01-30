@@ -1,0 +1,193 @@
+{
+  "info": {
+    "_postman_id": "product-api",
+    "name": "Product API",
+    "description": "Collection for Product API endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create Product",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "image",
+              "type": "file",
+              "src": []
+            },
+            {
+              "key": "title",
+              "value": "Product Title",
+              "type": "text"
+            },
+            {
+              "key": "type",
+              "value": "category_type",
+              "type": "text"
+            },
+            {
+              "key": "description",
+              "value": "Product description",
+              "type": "text"
+            },
+            {
+              "key": "size",
+              "value": "M",
+              "type": "text"
+            },
+            {
+              "key": "availableQuantity",
+              "value": "100",
+              "type": "text"
+            },
+            {
+              "key": "price",
+              "value": "99.99",
+              "type": "text"
+            },
+            {
+              "key": "role",
+              "value": "507f1f77bcf86cd799439011",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "value": "active",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/product/create",
+          "host": ["{{base_url}}"],
+          "path": ["product", "create"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get All Products",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/product/all",
+          "host": ["{{base_url}}"],
+          "path": ["product", "all"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Product By ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/product/507f1f77bcf86cd799439012",
+          "host": ["{{base_url}}"],
+          "path": ["product", "507f1f77bcf86cd799439012"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Products By Type",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/product/type/category_type",
+          "host": ["{{base_url}}"],
+          "path": ["product", "type", "category_type"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Products By Role",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/product/user/507f1f77bcf86cd799439011",
+          "host": ["{{base_url}}"],
+          "path": ["product", "user", "507f1f77bcf86cd799439011"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Update Product",
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "image",
+              "type": "file",
+              "src": [],
+              "disabled": true
+            },
+            {
+              "key": "title",
+              "value": "Updated Product Title",
+              "type": "text"
+            },
+            {
+              "key": "description",
+              "value": "Updated description",
+              "type": "text"
+            },
+            {
+              "key": "price",
+              "value": "119.99",
+              "type": "text"
+            },
+            {
+              "key": "availableQuantity",
+              "value": "150",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "value": "active",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/product/507f1f77bcf86cd799439012",
+          "host": ["{{base_url}}"],
+          "path": ["product", "507f1f77bcf86cd799439012"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Delete Product",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/product/507f1f77bcf86cd799439012",
+          "host": ["{{base_url}}"],
+          "path": ["product", "507f1f77bcf86cd799439012"]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000/api"
+    }
+  ]
+}
