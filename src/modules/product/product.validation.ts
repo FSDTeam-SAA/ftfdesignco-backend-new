@@ -2,9 +2,7 @@ import { z } from 'zod'
 
 const createProductValidationSchema = z.object({
   body: z.object({
-    image: z.string({
-      required_error: 'Image is required',
-    }),
+    image: z.string().optional(),
     title: z.string({
       required_error: 'Title is required',
     }),
