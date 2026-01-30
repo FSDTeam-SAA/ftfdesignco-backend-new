@@ -39,6 +39,11 @@ const productSchema = new Schema<IProduct, productModel>(
       ref: 'User',
       required: true,
     },
+    status: {
+      type: String,
+      enum: ['active', 'deactive'],
+      default: 'active',
+    },
   },
   {
     timestamps: true,
