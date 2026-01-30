@@ -28,7 +28,6 @@ router.delete(
 
 router.delete(
     '/clear/:userId',
-    auth(USER_ROLE.OWNER, USER_ROLE.EMPLOYER),
-    addToCartController.clearCart)
+    auth(USER_ROLE.EMPLOYER), addToCartController.clearCart)
 
 export const addToCartRouter = router
