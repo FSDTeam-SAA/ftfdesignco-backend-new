@@ -15,10 +15,11 @@ router.post(
 )
 
 router.post(
-  '/verify-email',
+  "/verify-email",
   auth(USER_ROLE.OWNER, USER_ROLE.EMPLOYER),
-  userController.verifyEmail,
-)
+  userController.verifyEmail
+);
+
 
 router.post(
   '/resend-otp',
