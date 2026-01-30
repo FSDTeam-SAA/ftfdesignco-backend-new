@@ -1,16 +1,29 @@
 import { StatusCodes } from 'http-status-codes'
 import AppError from '../../errors/AppError'
+import {
+  uploadToCloudinary,
+  deleteFromCloudinary,
+} from '../../utils/cloudinary'
 import { IProduct } from './product.interface'
 import { Product } from './product.model'
 
 // Create a new product
-const createProduct = async (payload: IProduct): Promise<IProduct> => {
+const createProduct = async (
+  payload: IProduct,
+  file?: Express.Multer.File,
+): Promise<IProduct> => {
   const existingProduct = await Product.isProductExistByTitle(payload.title)
   if (existingProduct) {
     throw new AppError(
       'Product with this title already exists',
       StatusCodes.CONFLICT,
     )
+  }
+
+  // Upload image to Cloudinary if file is provided
+  if (file) {
+    const uploadResult = await uploadToCloudinary(file.path, 'products')
+    payload.image = uploadResult.secure_url
   }
 
   const result = await Product.create(payload)
@@ -44,6 +57,7 @@ const getProductById = async (id: string): Promise<IProduct | null> => {
 const updateProduct = async (
   id: string,
   payload: Partial<IProduct>,
+  file?: Express.Multer.File,
 ): Promise<IProduct | null> => {
   const existingProduct = await Product.isProductExistById(id)
   if (!existingProduct) {
@@ -58,6 +72,25 @@ const updateProduct = async (
         'Product with this title already exists',
         StatusCodes.CONFLICT,
       )
+    }
+  }
+
+  // Upload new image to Cloudinary if file is provided
+  if (file) {
+    const uploadResult = await uploadToCloudinary(file.path, 'products')
+    payload.image = uploadResult.secure_url
+
+    // Delete old image from Cloudinary if it exists
+    if (existingProduct.image) {
+      const publicIdMatch = existingProduct.image.match(
+        /\/products\/([^\/]+)\.[^.]+$/,
+      )
+      if (publicIdMatch) {
+        const publicId = `products/${publicIdMatch[1]}`
+        await deleteFromCloudinary(publicId).catch(() => {
+          // Ignore errors if old image doesn't exist
+        })
+      }
     }
   }
 

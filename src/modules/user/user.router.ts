@@ -1,18 +1,18 @@
-import { Router } from "express";
-import userController from "./user.controller";
-import validateRequest from "../../middleware/validateRequest";
-import { userValidation } from "./user.validation";
-import auth from "../../middleware/auth";
-import { USER_ROLE } from "./user.constant";
-import { upload } from "../../middleware/multer.middleware";
+import { Router } from 'express'
+import userController from './user.controller'
+import validateRequest from '../../middleware/validateRequest'
+import { userValidation } from './user.validation'
+import auth from '../../middleware/auth'
+import { USER_ROLE } from './user.constant'
+import { upload } from '../../middleware/multer.middleware'
 
-const router = Router();
+const router = Router()
 
 router.post(
-  "/register",
+  '/register',
   validateRequest(userValidation.userValidationSchema),
-  userController.registerUser
-);
+  userController.registerUser,
+)
 
 router.post(
   "/verify-email",
@@ -20,31 +20,32 @@ router.post(
   userController.verifyEmail
 );
 
-router.post(
-  "/resend-otp",
-  auth(USER_ROLE.ADMIN, USER_ROLE.USER),
-  userController.resendOtpCode
-);
 
-router.get("/all-users", userController.getAllUsers);
+router.post(
+  '/resend-otp',
+  auth(USER_ROLE.OWNER, USER_ROLE.EMPLOYER),
+  userController.resendOtpCode,
+)
+
+router.get('/all-users', userController.getAllUsers)
 router.get(
-  "/my-profile",
-  auth(USER_ROLE.ADMIN, USER_ROLE.USER),
-  userController.getMyProfile
-);
+  '/my-profile',
+  auth(USER_ROLE.OWNER, USER_ROLE.EMPLOYER),
+  userController.getMyProfile,
+)
 
 router.put(
-  "/update-profile",
-  upload.single("image"),
-  auth(USER_ROLE.ADMIN, USER_ROLE.USER),
-  userController.updateUserProfile
-);
+  '/update-profile',
+  upload.single('image'),
+  auth(USER_ROLE.OWNER, USER_ROLE.EMPLOYER),
+  userController.updateUserProfile,
+)
 
 router.get(
-  "/admin_id",
-  auth(USER_ROLE.ADMIN, USER_ROLE.USER),
-  userController.getAdminId
-);
+  '/admin_id',
+  auth(USER_ROLE.OWNER, USER_ROLE.EMPLOYER),
+  userController.getAdminId,
+)
 
-const userRouter = router;
-export default userRouter;
+const userRouter = router
+export default userRouter

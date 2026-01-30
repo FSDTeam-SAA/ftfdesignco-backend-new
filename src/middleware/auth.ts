@@ -1,33 +1,42 @@
-import { NextFunction, Request, Response } from "express";
-import { StatusCodes } from "http-status-codes";
-import config from "../config";
-import AppError from "../errors/AppError";
-import logger from "../logger";
-import { verifyToken } from "../utils/tokenGenerate";
+import { NextFunction, Request, Response } from 'express'
+import { StatusCodes } from 'http-status-codes'
+import config from '../config'
+import AppError from '../errors/AppError'
+import logger from '../logger'
+import { verifyToken } from '../utils/tokenGenerate'
 
 const auth = (...roles: string[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
     try {
-      const extractedToken = req.headers.authorization;
-      const token = extractedToken?.split(" ")[1];
+      const extractedToken = req.headers.authorization
+      const token = extractedToken?.split(' ')[1]
       if (!token) {
-        throw new AppError("Invalid token", StatusCodes.UNAUTHORIZED);
+        throw new AppError('Invalid token', StatusCodes.UNAUTHORIZED)
       }
 
-      const verifyUserData = verifyToken(token, config.JWT_SECRET as string);
+      const verifyUserData = verifyToken(token, config.JWT_SECRET as string)
 
-      req.user = verifyUserData;
+      req.user = verifyUserData
 
       if (roles.length && !roles.includes(verifyUserData.role)) {
-        throw new AppError("You are not authorized!", StatusCodes.UNAUTHORIZED);
+        throw new AppError('You are not authorized!', StatusCodes.UNAUTHORIZED)
       }
 
-      next();
+      next()
     } catch (error: any) {
-      logger.error("Authorization error:", error);
-      throw new AppError("You are not authorized", StatusCodes.UNAUTHORIZED);
+      logger.error('Authorization error:', error)
+      // Provide more specific error messages
+      if (error.name === 'JsonWebTokenError') {
+        throw new AppError('Invalid token', StatusCodes.UNAUTHORIZED)
+      } else if (error.name === 'TokenExpiredError') {
+        throw new AppError('Token has expired', StatusCodes.UNAUTHORIZED)
+      } else if (error instanceof AppError) {
+        throw error
+      } else {
+        throw new AppError('You are not authorized', StatusCodes.UNAUTHORIZED)
+      }
     }
-  };
-};
+  }
+}
 
-export default auth;
+export default auth

@@ -2,12 +2,14 @@ import { Router } from 'express'
 import productController from './product.controller'
 import validateRequest from '../../middleware/validateRequest'
 import { productValidation } from './product.validation'
+import { upload } from '../../middleware/multer.middleware'
 
 const router = Router()
 
 // Create product
 router.post(
   '/create',
+  upload.single('image'),
   validateRequest(productValidation.createProductValidationSchema),
   productController.createProduct,
 )
@@ -27,6 +29,7 @@ router.get('/user/:roleId', productController.getProductsByRole)
 // Update product by ID
 router.put(
   '/:id',
+  upload.single('image'),
   validateRequest(productValidation.updateProductValidationSchema),
   productController.updateProduct,
 )

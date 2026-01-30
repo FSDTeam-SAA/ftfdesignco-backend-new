@@ -1,46 +1,46 @@
-import { Router } from "express";
-import authController from "./auth.controller";
-import validateRequest from "../../middleware/validateRequest";
-import { authValidationSchema } from "./auth.validation";
-import auth from "../../middleware/auth";
-import { USER_ROLE } from "../user/user.constant";
-import { loginLimiter } from "../../middleware/security";
+import { Router } from 'express'
+import authController from './auth.controller'
+import validateRequest from '../../middleware/validateRequest'
+import { authValidationSchema } from './auth.validation'
+import auth from '../../middleware/auth'
+import { USER_ROLE } from '../user/user.constant'
+import { loginLimiter } from '../../middleware/security'
 
-const router = Router();
+const router = Router()
 
 router.post(
-  "/login",
+  '/login',
   loginLimiter,
   validateRequest(authValidationSchema.authValidation),
-  authController.login
-);
+  authController.login,
+)
 
-router.post("/refresh-token", authController.refreshToken);
-router.post("/forgot-password", authController.forgotPassword);
-
-router.post(
-  "/resend-forgot-otp",
-  auth(USER_ROLE.ADMIN, USER_ROLE.USER),
-  authController.resendForgotOtpCode
-);
+router.post('/refresh-token', authController.refreshToken)
+router.post('/forgot-password', authController.forgotPassword)
 
 router.post(
-  "/verify-otp",
-  auth(USER_ROLE.ADMIN, USER_ROLE.USER),
-  authController.verifyOtp
-);
+  '/resend-forgot-otp',
+  auth(USER_ROLE.OWNER, USER_ROLE.EMPLOYER),
+  authController.resendForgotOtpCode,
+)
 
 router.post(
-  "/reset-password",
-  auth(USER_ROLE.ADMIN, USER_ROLE.USER),
-  authController.resetPassword
-);
+  '/verify-otp',
+  auth(USER_ROLE.OWNER, USER_ROLE.EMPLOYER),
+  authController.verifyOtp,
+)
 
 router.post(
-  "/change-password",
-  auth(USER_ROLE.ADMIN, USER_ROLE.USER),
-  authController.changePassword
-);
+  '/reset-password',
+  auth(USER_ROLE.OWNER, USER_ROLE.EMPLOYER),
+  authController.resetPassword,
+)
 
-const authRouter = router;
-export default authRouter;
+router.post(
+  '/change-password',
+  auth(USER_ROLE.OWNER, USER_ROLE.EMPLOYER),
+  authController.changePassword,
+)
+
+const authRouter = router
+export default authRouter

@@ -5,7 +5,7 @@ import productService from './product.service'
 
 // Create a new product
 const createProduct = catchAsync(async (req, res) => {
-  const result = await productService.createProduct(req.body)
+  const result = await productService.createProduct(req.body, req.file)
 
   sendResponse(res, {
     statusCode: StatusCodes.CREATED,
@@ -43,7 +43,7 @@ const getProductById = catchAsync(async (req, res) => {
 // Update product by ID
 const updateProduct = catchAsync(async (req, res) => {
   const { id } = req.params
-  const result = await productService.updateProduct(id, req.body)
+  const result = await productService.updateProduct(id, req.body, req.file)
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
