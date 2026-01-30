@@ -13,4 +13,4 @@ export interface IAddToCart {
   updatedAt?: Date
 }
 
-export interface addToCartModel extends Model<IAddToCart> {}
+export type addToCartModel = Model<IAddToCart> 

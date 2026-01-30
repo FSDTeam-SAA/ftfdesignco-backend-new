@@ -16,7 +16,7 @@ router.post(
 
 router.post(
   "/verify-email",
-  auth(USER_ROLE.ADMIN, USER_ROLE.USER),
+  auth(USER_ROLE.OWNER, USER_ROLE.EMPLOYER),
   userController.verifyEmail
 );
 
