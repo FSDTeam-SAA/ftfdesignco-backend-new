@@ -2,6 +2,7 @@ import { StatusCodes } from 'http-status-codes'
 import AppError from '../../errors/AppError'
 import { IRole } from './role.interface'
 import { Role } from './role.model'
+import { User } from '../user/user.model'
 
 // Create a new role
 const createRole = async (payload: IRole): Promise<IRole> => {
@@ -68,12 +69,34 @@ const deleteRole = async (id: string): Promise<IRole | null> => {
   return result
 }
 
+const setUserRoleFromDB = async (userId: string, roleId: string) => {
+  // 1. Check if the role actually exists
+  const role = await Role.findById(roleId);
+  if (!role) {
+    throw new AppError('Role not found', StatusCodes.NOT_FOUND);
+  }
+
+  // 2. Update the User document with this role ID
+  const result = await User.findByIdAndUpdate(
+    userId,
+    { selectedRole: roleId },
+    { new: true }
+  ).populate('selectedRole');
+
+  if (!result) {
+    throw new AppError('User not found', StatusCodes.NOT_FOUND);
+  }
+
+  return result;
+};
+
 const roleService = {
   createRole,
   getAllRoles,
   getRoleById,
   updateRole,
   deleteRole,
+  setUserRoleFromDB
 }
 
 export default roleService

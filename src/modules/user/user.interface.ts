@@ -14,6 +14,7 @@ export interface IUser {
   role: 'owner' | 'employer'
   avatar?: string
   balance: number
+  selectedRole?: string
   companyName?: string
   location?: string
   isVerified: boolean
