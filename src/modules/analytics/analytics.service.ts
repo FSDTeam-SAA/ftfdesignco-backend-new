@@ -1,7 +1,7 @@
 import { User } from '../user/user.model';
 import { Product } from '../product/product.model';
 import { Order } from '../order/order.model';
-import { Parser } from 'json2csv';
+import { Parser } from '@json2csv/plainjs';
 
 const getAdminDashboardStats = async () => {
     const [totalUsers, totalProducts, totalOrders] = await Promise.all([
@@ -30,24 +30,23 @@ const exportOrdersToCSV = async () => {
         .populate('products.productId', 'title price');
 
     const flattenedData = orders.map((order: any) => ({
-        OrderID: order._id,
+        OrderID: order._id.toString(),
         Customer: order.user ? `${order.user.firstName} ${order.user.lastName}` : 'Guest',
         Email: order.user?.email || 'N/A',
         TotalAmount: order.totalAmount,
         Status: order.status,
-        Region: order.region,
-        // Flatten products into a readable string: "Product Name (xQty), ..."
-        Products: order.products.map((p: any) =>
-            `${p.productId?.title || 'Unknown'} (x${p.quantity})`
-        ).join('; '),
         Date: new Date(order.createdAt).toLocaleDateString(),
     }));
 
-    const fields = ['OrderID', 'Customer', 'Email', 'TotalAmount', 'Status', 'Region', 'Products', 'Date'];
-    const json2csvParser = new Parser({ fields });
-    const csv = json2csvParser.parse(flattenedData);
-
-    return csv;
+    try {
+        const opts = {}; // You can add options here if needed
+        const parser = new Parser(opts);
+        const csv = parser.parse(flattenedData);
+        return csv;
+    } catch (err) {
+        console.error(err);
+        throw err;
+    }
 };
 
 export const analyticsService = {
