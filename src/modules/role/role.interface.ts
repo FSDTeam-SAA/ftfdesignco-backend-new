@@ -8,5 +8,4 @@ export interface IRole {
   updatedAt?: Date
 }
 
-export interface roleModel extends Model<IRole> {}
-// test
+export type roleModel = Model<IRole>

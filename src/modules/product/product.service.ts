@@ -30,14 +30,18 @@ const createProduct = async (
   return result
 }
 
+
+
 // Get all products
-const getAllProducts = async (): Promise<IProduct[]> => {
-  const result = await Product.find().populate(
-    'role',
-    'firstName lastName email',
-  )
-  return result
-}
+// const getAllProducts = async (): Promise<IProduct[]> => {
+//   const result = await Product.find().populate(
+//     'role',
+//     'firstName lastName email',
+//   )
+//   return result
+// }
+
+
 
 // Get product by ID
 const getProductById = async (id: string): Promise<IProduct | null> => {
@@ -82,9 +86,7 @@ const updateProduct = async (
 
     // Delete old image from Cloudinary if it exists
     if (existingProduct.image) {
-      const publicIdMatch = existingProduct.image.match(
-        /\/products\/([^\/]+)\.[^.]+$/,
-      )
+      const publicIdMatch = existingProduct.image.match(/\/products\/([^/]+)\.[^.]+$/);
       if (publicIdMatch) {
         const publicId = `products/${publicIdMatch[1]}`
         await deleteFromCloudinary(publicId).catch(() => {
@@ -122,14 +124,34 @@ const getProductsByType = async (type: string): Promise<IProduct[]> => {
   return result
 }
 
-// Get products by user/role
+
+
+// 1. Get Products by a specific Role ID (Direct Fetch)
 const getProductsByRole = async (roleId: string): Promise<IProduct[]> => {
-  const result = await Product.find({ role: roleId }).populate(
-    'role',
-    'firstName lastName email',
-  )
-  return result
-}
+  // Use 'targetRoles' to match your schema logic
+  const result = await Product.find({
+    targetRoles: { $in: [roleId] },
+    status: 'active'
+  }).populate('targetRoles', 'roleTitle images');
+
+  return result;
+};
+
+// 2. Get All Products (With Optional Role Filtering & Query handling)
+const getAllProducts = async (query: Record<string, unknown>, roleId?: string) => {
+  const filter: any = { status: 'active' };
+
+  // If a roleId is provided (from the user's profile), we filter the catalog
+  if (roleId) {
+    filter.targetRoles = { $in: [roleId] };
+  }
+
+  // Combine this with your existing search/pagination logic
+  const result = await Product.find(filter)
+    .populate('targetRoles', 'roleTitle images');
+
+  return result;
+};
 
 const productService = {
   createProduct,

@@ -66,12 +66,27 @@ const deleteRole = catchAsync(async (req, res) => {
   })
 })
 
+const setUserRole = catchAsync(async (req, res) => {
+  const userId = req.user.id; // Assuming your auth middleware attaches user to req
+  const { roleId } = req.body;
+
+  const result = await roleService.setUserRoleFromDB(userId, roleId);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'User job role updated successfully',
+    data: result,
+  });
+});
+
 const roleController = {
   createRole,
   getAllRoles,
   getRoleById,
   updateRole,
   deleteRole,
+  setUserRole
 }
 
 export default roleController
