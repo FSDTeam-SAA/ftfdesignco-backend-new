@@ -6,6 +6,7 @@ import productRouter from '../modules/product/product.router'
 import { addToCartRouter } from '../modules/addToCart/addToCart.router'
 import { orderRouter } from '../modules/order/order.router'
 import { roleRouter } from '../modules/role/role.router'
+import { analyticsRouter } from '../modules/analytics/analytics.router'
 
 const router = Router()
 
@@ -37,6 +38,10 @@ const moduleRoutes = [
   {
     path: '/role',
     route: roleRouter,
+  },
+  {
+    path: '/analytics',
+    route: analyticsRouter,
   },
 ]
 
