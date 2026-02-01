@@ -17,12 +17,16 @@ const createProduct = catchAsync(async (req, res) => {
 
 // Get all products
 const getAllProducts = catchAsync(async (req, res) => {
-  const result = await productService.getAllProducts()
+  // Extract the role ID that we saved to the user document earlier
+  const roleId = req.user.selectedRole;
+
+  // Now the service will look for products matching this Role ID
+  const result = await productService.getAllProducts(req.query, roleId)
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: 'Products retrieved successfully',
+    message: 'Personalized catalog retrieved successfully',
     data: result,
   })
 })

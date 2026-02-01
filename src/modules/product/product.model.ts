@@ -39,6 +39,13 @@ const productSchema = new Schema<IProduct, productModel>(
       ref: 'User',
       required: true,
     },
+    targetRoles: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'Role', // Points to your Role collection, not User
+        required: true,
+      }
+    ],
     status: {
       type: String,
       enum: ['active', 'deactive'],

@@ -35,6 +35,11 @@ const userSchema = new Schema<IUser>(
     region: {
       type: String,
     },
+    selectedRole: {
+      type: Schema.Types.ObjectId,
+      ref: 'Role',
+      default: null,
+    },
     role: {
       type: String,
       enum: ['owner', 'employer'],

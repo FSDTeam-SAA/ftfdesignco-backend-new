@@ -20,6 +20,9 @@ const createProductValidationSchema = z.object({
         required_error: 'Available quantity is required',
       })
       .min(0, 'Available quantity must be at least 0'),
+    targetRoles: z.union([z.string(), z.array(z.string())]).transform((val) =>
+      Array.isArray(val) ? val : [val]
+    ),
     price: z.coerce
       .number({
         required_error: 'Price is required',

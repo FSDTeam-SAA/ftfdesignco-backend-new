@@ -10,6 +10,7 @@ export interface IProduct {
   availableQuantity: number
   price: number
   role: Types.ObjectId
+  targetRoles: Types.ObjectId[]
   status: 'active' | 'deactive'
   createdAt?: Date
   updatedAt?: Date

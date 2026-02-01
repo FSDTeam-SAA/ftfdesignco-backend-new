@@ -2,32 +2,16 @@ import { z } from 'zod'
 
 const createOrderValidationSchema = z.object({
   body: z.object({
-    userId: z.string({
-      required_error: 'User ID is required',
-    }),
-    region: z.string({
-      required_error: 'Region is required',
-    }),
-    products: z.array(
-      z.object({
-        productId: z.string({
-          required_error: 'Product ID is required',
-        }),
-        quantity: z
-          .number({
-            required_error: 'Quantity is required',
-          })
-          .min(1, 'Quantity must be at least 1'),
-        size: z.string({
-          required_error: 'Size is required',
-        }),
-      }),
-    ),
-    status: z
-      .enum(['pending', 'paid', 'shipped', 'delivered', 'cancelled'])
-      .optional(),
-  }),
-})
+    user: z.string(), // The User ID
+    region: z.string({ required_error: "Please enter your region" }),
+    totalAmount: z.number().min(1),
+    products: z.array(z.object({
+      productId: z.string(),
+      quantity: z.number(),
+      size: z.string()
+    }))
+  })
+});
 
 const updateOrderValidationSchema = z.object({
   body: z.object({
