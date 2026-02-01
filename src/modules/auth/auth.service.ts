@@ -198,7 +198,7 @@ const verifyOtp = async (email: string, otp: string) => {
       StatusCodes.BAD_REQUEST,
     )
   }
-
+// test
   const isOtpMatched = await bcrypt.compare(
     otp.toString(),
     isExistingUser.resetPasswordOtp,
