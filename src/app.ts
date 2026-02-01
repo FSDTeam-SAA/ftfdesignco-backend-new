@@ -15,7 +15,8 @@ const app: Application = express();
 
 const allowedOrigins = [
   'https://pjf-clothing.vercel.app/',
-  'http:'//localhost:3000',
+  'http://localhost:3000',
+  'http://localhost:3001'
 
 ]
 
