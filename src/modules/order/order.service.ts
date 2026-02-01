@@ -63,7 +63,8 @@ const createOrder = async (payload: any) => {
     const [newOrder] = await Order.create([orderData], { session });
 
     await session.commitTransaction();
-    return newOrder;
+    // return newOrder;
+    return await newOrder.populate('user', 'firstName lastName email');
 
   } catch (error) {
     await session.abortTransaction();

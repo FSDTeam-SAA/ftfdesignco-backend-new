@@ -5,10 +5,13 @@ import notFound from "./middleware/notFound";
 
 import { applySecurity } from "./middleware/security";
 import router from "./router";
+import httpLogger from "./httpLogger";
 
 const app: Application = express();
 
 // applySecurity(app);
+
+app.use(httpLogger);
 
 app.use(express.static("public"));
 

@@ -16,20 +16,36 @@ const createProduct = catchAsync(async (req, res) => {
 })
 
 // Get all products
-const getAllProducts = catchAsync(async (req, res) => {
-  // Extract the role ID that we saved to the user document earlier
-  const roleId = req.user.selectedRole;
+// const getAllProducts = catchAsync(async (req, res) => {
+//   // Extract the role ID that we saved to the user document earlier
+//   const roleId = req.user.selectedRole;
 
-  // Now the service will look for products matching this Role ID
-  const result = await productService.getAllProducts(req.query, roleId)
+//   // Now the service will look for products matching this Role ID
+//   const result = await productService.getAllProducts(req.query, roleId)
+
+//   sendResponse(res, {
+//     statusCode: StatusCodes.OK,
+//     success: true,
+//     message: 'Personalized catalog retrieved successfully',
+//     data: result,
+//   })
+// })
+
+
+
+const getAllProducts = catchAsync(async (req, res) => {
+  // Use optional chaining (?.) to prevent crashing if user is undefined
+  const roleId = req.user?.selectedRole;
+
+  const result = await productService.getAllProducts(req.query, roleId);
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: 'Personalized catalog retrieved successfully',
+    message: 'Products retrieved successfully',
     data: result,
-  })
-})
+  });
+});
 
 // Get product by ID
 const getProductById = catchAsync(async (req, res) => {
