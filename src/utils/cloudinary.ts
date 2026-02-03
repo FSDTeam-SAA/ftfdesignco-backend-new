@@ -11,24 +11,52 @@ cloudinary.config({
 });
 
 // upload file
+// export const uploadToCloudinary = async (filePath: string, folder: string) => {
+//   try {
+//     const result = await cloudinary.uploader.upload(filePath, {
+//       folder,
+//       resource_type: "auto",
+//     });
+
+
+//     // delete local file after upload
+//     fs.unlinkSync(filePath);
+
+//     return {
+//       public_id: result.public_id,
+//       secure_url: result.secure_url,
+//     };
+//   } catch (error: any) {
+//     logger.error("Cloudinary upload error:", error);
+//     throw new Error("Failed to upload file to Cloudinary");
+//   }
+// };
+
 export const uploadToCloudinary = async (filePath: string, folder: string) => {
+  console.log("Cloudinary Config:", {
+    name: config.cloudinary.cloud_name,
+    key: config.cloudinary.api_key ? "EXISTS" : "MISSING"
+  });
   try {
     const result = await cloudinary.uploader.upload(filePath, {
       folder,
       resource_type: "auto",
     });
 
-
-    // delete local file after upload
-    fs.unlinkSync(filePath);
-
     return {
       public_id: result.public_id,
       secure_url: result.secure_url,
     };
   } catch (error: any) {
-    logger.error("Cloudinary upload error:", error);
-    throw new Error("Failed to upload file to Cloudinary");
+    logger.error("Cloudinary API Error Detail:", error.message);
+    // Re-throw the actual error or a more descriptive one
+    throw new Error(`Cloudinary Upload Failed: ${error.message}`);
+  } finally {
+    // CRITICAL: Delete the file even if upload fails to prevent disk leaks
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      logger.info(`Cleaned up local file: ${filePath}`);
+    }
   }
 };
 

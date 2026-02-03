@@ -2,18 +2,33 @@ import { StatusCodes } from 'http-status-codes'
 import catchAsync from '../../utils/catchAsync'
 import sendResponse from '../../utils/sendResponse'
 import roleService from './role.service'
+import { uploadToCloudinary } from '../../utils/cloudinary';
+import AppError from '../../errors/AppError';
 
 // Create a new role
+// role.controller.ts
 const createRole = catchAsync(async (req, res) => {
-  const result = await roleService.createRole(req.body)
+  // 1. Manual guard for the file
+  if (!req.file) {
+    throw new AppError('Role image file is required', StatusCodes.BAD_REQUEST);
+  }
+
+  // 2. Upload to Cloudinary
+  const uploadResult = await uploadToCloudinary(req.file.path, 'roles');
+
+  // 3. Create the role with the NEW URL
+  const result = await roleService.createRole({
+    ...req.body,
+    images: uploadResult.secure_url,
+  });
 
   sendResponse(res, {
     statusCode: StatusCodes.CREATED,
     success: true,
     message: 'Role created successfully',
     data: result,
-  })
-})
+  });
+});
 
 // Get all roles
 const getAllRoles = catchAsync(async (req, res) => {

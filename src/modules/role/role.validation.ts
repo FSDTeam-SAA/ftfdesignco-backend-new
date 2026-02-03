@@ -1,15 +1,14 @@
 import { z } from 'zod'
 
+// role.validation.ts
 const createRoleValidationSchema = z.object({
   body: z.object({
-    images: z.string({
-      required_error: 'Images is required',
-    }),
     roleTitle: z.string({
       required_error: 'Role title is required',
     }),
+    images: z.string().optional(), 
   }),
-})
+});
 
 const updateRoleValidationSchema = z.object({
   body: z.object({

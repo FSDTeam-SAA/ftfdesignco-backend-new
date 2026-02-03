@@ -12,35 +12,32 @@ const createProduct = async (
   payload: IProduct,
   file?: Express.Multer.File,
 ): Promise<IProduct> => {
-  const existingProduct = await Product.isProductExistByTitle(payload.title)
+  const existingProduct = await Product.isProductExistByTitle(payload.title);
   if (existingProduct) {
     throw new AppError(
       'Product with this title already exists',
       StatusCodes.CONFLICT,
-    )
+    );
   }
 
-  // Upload image to Cloudinary if file is provided
-  if (file) {
-    const uploadResult = await uploadToCloudinary(file.path, 'products')
-    payload.image = uploadResult.secure_url
+  // 1. Check if file exists since schema marks image as required
+  if (!file) {
+    throw new AppError('Product image is required', StatusCodes.BAD_REQUEST);
   }
 
-  const result = await Product.create(payload)
-  return result
-}
+  // 2. Upload to Cloudinary
+  const uploadResult = await uploadToCloudinary(file.path, 'products');
 
-
-
-// Get all products
-// const getAllProducts = async (): Promise<IProduct[]> => {
-//   const result = await Product.find().populate(
-//     'role',
-//     'firstName lastName email',
-//   )
-//   return result
-// }
-
+  // 3. Map to the NEW schema structure (Object, not String)
+  // product.service.ts
+  payload.image = {
+    url: uploadResult.secure_url,
+    publicId: uploadResult.public_id,
+  };
+  // 4. Create the product
+  const result = await Product.create(payload);
+  return result;
+};
 
 
 // Get product by ID
@@ -82,18 +79,22 @@ const updateProduct = async (
   // Upload new image to Cloudinary if file is provided
   if (file) {
     const uploadResult = await uploadToCloudinary(file.path, 'products')
-    payload.image = uploadResult.secure_url
+    payload.image = {
+      url: uploadResult.secure_url,
+      publicId: uploadResult.public_id,
+    };
 
     // Delete old image from Cloudinary if it exists
-    if (existingProduct.image) {
-      const publicIdMatch = existingProduct.image.match(/\/products\/([^/]+)\.[^.]+$/);
+    if (existingProduct.image && typeof existingProduct.image === 'string') {
+      const publicIdMatch = (existingProduct.image as string).match(/\/products\/([^/]+)\.[^.]+$/);
       if (publicIdMatch) {
-        const publicId = `products/${publicIdMatch[1]}`
+        const publicId = `products/${publicIdMatch[1]}`;
         await deleteFromCloudinary(publicId).catch(() => {
           // Ignore errors if old image doesn't exist
-        })
+        });
       }
     }
+
   }
 
   const result = await Product.findByIdAndUpdate(id, payload, {
@@ -138,19 +139,34 @@ const getProductsByRole = async (roleId: string): Promise<IProduct[]> => {
 };
 
 // 2. Get All Products (With Optional Role Filtering & Query handling)
+// const getAllProducts = async (query: Record<string, unknown>, roleId?: string) => {
+//   const filter: any = { status: 'active' };
+
+//   // If a roleId is provided (from the user's profile), we filter the catalog
+//   if (roleId) {
+//     filter.targetRoles = { $in: [roleId] };
+//   }
+
+//   // Combine this with your existing search/pagination logic
+//   const result = await Product.find(filter)
+//     .populate('targetRoles', 'roleTitle images');
+
+//   return result;
+// };
+
+// product.service.ts
 const getAllProducts = async (query: Record<string, unknown>, roleId?: string) => {
   const filter: any = { status: 'active' };
 
-  // If a roleId is provided (from the user's profile), we filter the catalog
   if (roleId) {
-    filter.targetRoles = { $in: [roleId] };
+    // Show products that match the role OR have no specific roles assigned (Global)
+    filter.$or = [
+      { targetRoles: { $in: [roleId] } },
+      { targetRoles: { $size: 0 } }
+    ];
   }
 
-  // Combine this with your existing search/pagination logic
-  const result = await Product.find(filter)
-    .populate('targetRoles', 'roleTitle images');
-
-  return result;
+  return await Product.find(filter).populate('targetRoles');
 };
 
 const productService = {
