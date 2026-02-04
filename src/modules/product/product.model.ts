@@ -4,10 +4,12 @@ import { IProduct, productModel } from './product.interface'
 const productSchema = new Schema<IProduct, productModel>(
   {
     // product.model.ts
-    image: {
-      url: { type: String, required: true },
-      publicId: { type: String, required: true }
-    },
+    images: [
+      {
+        url: { type: String, required: true },
+        publicId: { type: String, required: true },
+      },
+    ],
     title: {
       type: String,
       required: true,
@@ -45,7 +47,7 @@ const productSchema = new Schema<IProduct, productModel>(
         type: Schema.Types.ObjectId,
         ref: 'Role', // Points to your Role collection, not User
         required: true,
-      }
+      },
     ],
     status: {
       type: String,

@@ -45,8 +45,9 @@ const userSchema = new Schema<IUser>(
       enum: ['owner', 'employer'],
       default: 'owner',
     },
-    avatar: {
-      type: String,
+    image: {
+      url: { type: String },
+      publicId: { type: String },
     },
     balance: {
       type: Number,
@@ -58,14 +59,19 @@ const userSchema = new Schema<IUser>(
     location: {
       type: String,
     },
-    isVerified: {
-      type: Boolean,
-      default: false,
+    resetPasswordOtp: {
+      type: String,
+      default: null,
     },
-    otp: { type: String, default: null },
-    otpExpires: { type: Date, default: null },
-    resetPasswordOtp: { type: String, default: null },
-    resetPasswordOtpExpires: { type: Date, default: null },
+    resetPasswordOtpExpires: {
+      type: Date,
+      default: null,
+    },
+    role_id: {
+      type: Schema.Types.ObjectId,
+      ref: 'Role',
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -73,7 +79,7 @@ const userSchema = new Schema<IUser>(
   },
 )
 
-userSchema.pre('save', async function (next) {
+userSchema.pre('save', async function (this: IUser, next) {
   this.password = await bcrypt.hash(
     this.password,
     Number(config.bcryptSaltRounds),
@@ -82,7 +88,7 @@ userSchema.pre('save', async function (next) {
   next()
 })
 
-userSchema.post('save', function (doc, next) {
+userSchema.post('save', function (doc: IUser, next) {
   doc.password = ''
   next()
 })

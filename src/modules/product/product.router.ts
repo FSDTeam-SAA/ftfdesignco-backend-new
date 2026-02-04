@@ -9,7 +9,7 @@ const router = Router()
 // Create product
 router.post(
   '/create',
-  upload.single('image'),
+  upload.array('images', 10),
   validateRequest(productValidation.createProductValidationSchema),
   productController.createProduct,
 )
@@ -29,7 +29,7 @@ router.get('/user/:roleId', productController.getProductsByRole)
 // Update product by ID
 router.put(
   '/:id',
-  upload.single('image'),
+  upload.array('images', 10),
   validateRequest(productValidation.updateProductValidationSchema),
   productController.updateProduct,
 )

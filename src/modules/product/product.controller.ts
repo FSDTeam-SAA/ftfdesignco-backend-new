@@ -5,7 +5,12 @@ import productService from './product.service'
 
 // Create a new product
 const createProduct = catchAsync(async (req, res) => {
-  const result = await productService.createProduct(req.body, req.file)
+  const files = Array.isArray(req.files)
+    ? req.files
+    : req.files
+      ? Object.values(req.files).flat()
+      : undefined
+  const result = await productService.createProduct(req.body, files)
 
   sendResponse(res, {
     statusCode: StatusCodes.CREATED,
@@ -31,21 +36,19 @@ const createProduct = catchAsync(async (req, res) => {
 //   })
 // })
 
-
-
 const getAllProducts = catchAsync(async (req, res) => {
   // Use optional chaining (?.) to prevent crashing if user is undefined
-  const roleId = req.user?.selectedRole;
+  const roleId = req.user?.selectedRole
 
-  const result = await productService.getAllProducts(req.query, roleId);
+  const result = await productService.getAllProducts(req.query, roleId)
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Products retrieved successfully',
     data: result,
-  });
-});
+  })
+})
 
 // Get product by ID
 const getProductById = catchAsync(async (req, res) => {
@@ -63,7 +66,12 @@ const getProductById = catchAsync(async (req, res) => {
 // Update product by ID
 const updateProduct = catchAsync(async (req, res) => {
   const { id } = req.params
-  const result = await productService.updateProduct(id, req.body, req.file)
+  const files = Array.isArray(req.files)
+    ? req.files
+    : req.files
+      ? Object.values(req.files).flat()
+      : undefined
+  const result = await productService.updateProduct(id, req.body, files)
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,

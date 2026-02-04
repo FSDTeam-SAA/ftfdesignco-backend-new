@@ -12,9 +12,9 @@ import verificationCodeTemplate from '../../utils/verificationCodeTemplate'
 import { IUser } from './user.interface'
 import { User } from './user.model'
 
-const registerUser = async (payload: IUser) => {
+const registerUser = async (payload: IUser, file?: any) => {
   const existingUser = await User.isUserExistByEmail(payload.email)
-  if (existingUser && existingUser.isVerified) {
+  if (existingUser) {
     throw new AppError('User already exists', StatusCodes.CONFLICT)
   }
 
@@ -26,36 +26,18 @@ const registerUser = async (payload: IUser) => {
     )
   }
 
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  console.log(otp);
-  const hashedOtp = await bcrypt.hash(otp, 10)
-  const otpExpires = new Date(Date.now() + 5 * 60 * 1000)
+  const userData: any = { ...payload }
 
-  let result: IUser
-
-  // Case 2: exists but not verified → update OTP
-  if (existingUser && !existingUser.isVerified) {
-    result = (await User.findOneAndUpdate(
-      { email: existingUser.email },
-      { otp: hashedOtp, otpExpires },
-      { new: true },
-    )) as IUser
-  } else {
-    // Case 3: new user
-    result = await User.create({
-      ...payload,
-      otp: hashedOtp,
-      otpExpires,
-      isVerified: false,
-    })
+  // Handle image upload if file is provided
+  if (file) {
+    const uploadResult = await uploadToCloudinary(file.path, 'users')
+    userData.image = {
+      url: uploadResult.secure_url,
+      publicId: uploadResult.public_id,
+    }
   }
 
-  // Send email
-  await sendEmail({
-    to: result.email,
-    subject: 'Verify your email',
-    html: verificationCodeTemplate(otp),
-  })
+  const result = await User.create(userData)
 
   // JWT payload
   const JwtToken = {
@@ -88,76 +70,6 @@ const registerUser = async (payload: IUser) => {
   }
 }
 
-const verifyEmail = async (email: string, payload: string) => {
-  const { otp }: any = payload
-  if (!otp) throw new Error('OTP is required')
-
-  const existingUser = await User.findOne({ email })
-  if (!existingUser)
-    throw new AppError(
-      'No account found with the provided credentials.',
-      StatusCodes.NOT_FOUND,
-    )
-
-  if (!existingUser.otp || !existingUser.otpExpires) {
-    throw new AppError('OTP not requested or expired', StatusCodes.BAD_REQUEST)
-  }
-
-  if (existingUser.otpExpires < new Date()) {
-    throw new AppError('OTP has expired', StatusCodes.BAD_REQUEST)
-  }
-
-  if (existingUser.isVerified === true) {
-    throw new AppError('User already verified', StatusCodes.CONFLICT)
-  }
-
-  const isOtpMatched = await bcrypt.compare(otp.toString(), existingUser.otp)
-  if (!isOtpMatched) throw new AppError('Invalid OTP', StatusCodes.BAD_REQUEST)
-
-  const result = await User.findOneAndUpdate(
-    { email },
-    {
-      isVerified: true,
-      $unset: { otp: '', otpExpires: '' },
-    },
-    { new: true },
-  ).select('username email role')
-  return result
-}
-
-const resendOtpCode = async (email: string) => {
-  const existingUser = await User.findOne({ email })
-  if (!existingUser)
-    throw new AppError(
-      'No account found with the provided credentials.',
-      StatusCodes.NOT_FOUND,
-    )
-
-  if (existingUser.isVerified === true) {
-    throw new AppError('User already verified', StatusCodes.CONFLICT)
-  }
-
-  const otp = Math.floor(100000 + Math.random() * 900000).toString()
-  const hashedOtp = await bcrypt.hash(otp, 10)
-  const otpExpires = new Date(Date.now() + 5 * 60 * 1000)
-
-  const result = await User.findOneAndUpdate(
-    { email },
-    {
-      otp: hashedOtp,
-      otpExpires,
-    },
-    { new: true },
-  ).select('username email role')
-
-  await sendEmail({
-    to: existingUser.email,
-    subject: 'Verify your email',
-    html: verificationCodeTemplate(otp),
-  })
-  return result
-}
-
 const getAllUsers = async () => {
   const result = await User.find().select(
     'username firstName lastName email role',
@@ -186,7 +98,7 @@ const getMyProfile = async (email: string) => {
 }
 
 const updateUserProfile = async (payload: any, email: string, file: any) => {
-  const user = await User.findOne({ email }).select('avatar')
+  const user = await User.findOne({ email }).select('image')
   if (!user)
     throw new AppError(
       'No account found with the provided credentials.',
@@ -195,23 +107,24 @@ const updateUserProfile = async (payload: any, email: string, file: any) => {
 
   // eslint-disable-next-line prefer-const
   let updateData: any = { ...payload }
-  let oldAvatarUrl: string | undefined
+  let oldImagePublicId: string | undefined
 
   if (file) {
     const uploadResult = await uploadToCloudinary(file.path, 'users')
-    oldAvatarUrl = user.avatar
+    oldImagePublicId = user.image?.publicId
 
-    updateData.avatar = uploadResult.secure_url
+    updateData.image = {
+      url: uploadResult.secure_url,
+      publicId: uploadResult.public_id,
+    }
   }
 
   const result = await User.findOneAndUpdate({ email }, updateData, {
     new: true,
-  }).select(
-    '-password -otp -otpExpires -resetPasswordOtp -resetPasswordOtpExpires',
-  )
+  }).select('-password')
 
-  if (file && oldAvatarUrl) {
-    await deleteFromCloudinary(oldAvatarUrl)
+  if (file && oldImagePublicId) {
+    await deleteFromCloudinary(oldImagePublicId)
   }
 
   return result
@@ -219,8 +132,6 @@ const updateUserProfile = async (payload: any, email: string, file: any) => {
 
 const userService = {
   registerUser,
-  verifyEmail,
-  resendOtpCode,
   getAllUsers,
   getMyProfile,
   updateUserProfile,

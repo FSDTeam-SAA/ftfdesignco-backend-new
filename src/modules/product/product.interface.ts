@@ -2,10 +2,10 @@ import { Model, Types } from 'mongoose'
 
 export interface IProduct {
   _id?: string
- image: {           // Change this from string to object
-    url: string;
-    publicId: string;
-  };
+  images: {
+    url: string
+    publicId: string
+  }[]
   title: string
   type: string
   description: string

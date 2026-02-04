@@ -10,21 +10,9 @@ const router = Router()
 
 router.post(
   '/register',
+  upload.single('image'),
   validateRequest(userValidation.userValidationSchema),
   userController.registerUser,
-)
-
-router.post(
-  "/verify-email",
-  auth(USER_ROLE.OWNER, USER_ROLE.EMPLOYER),
-  userController.verifyEmail
-);
-
-
-router.post(
-  '/resend-otp',
-  auth(USER_ROLE.OWNER, USER_ROLE.EMPLOYER),
-  userController.resendOtpCode,
 )
 
 router.get('/all-users', userController.getAllUsers)

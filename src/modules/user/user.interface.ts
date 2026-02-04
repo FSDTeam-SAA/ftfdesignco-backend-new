@@ -1,4 +1,4 @@
-import { Model } from 'mongoose'
+import { Model, Types } from 'mongoose'
 import { USER_ROLE } from './user.constant'
 
 export interface IUser {
@@ -12,14 +12,15 @@ export interface IUser {
   city?: string
   region?: string
   role: 'owner' | 'employer'
-  avatar?: string
+  image?: {
+    url?: string
+    publicId?: string
+  }
   balance: number
-  selectedRole?: string
+  selectedRole?: Types.ObjectId
   companyName?: string
   location?: string
-  isVerified: boolean
-  otp?: string | null
-  otpExpires?: Date | null
+  role_id?: Types.ObjectId
   resetPasswordOtp?: string | null
   resetPasswordOtpExpires?: Date | null
   createdAt?: Date

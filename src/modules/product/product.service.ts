@@ -10,35 +10,39 @@ import { Product } from './product.model'
 // Create a new product
 const createProduct = async (
   payload: IProduct,
-  file?: Express.Multer.File,
+  files?: Express.Multer.File[],
 ): Promise<IProduct> => {
-  const existingProduct = await Product.isProductExistByTitle(payload.title);
+  const existingProduct = await Product.isProductExistByTitle(payload.title)
   if (existingProduct) {
     throw new AppError(
       'Product with this title already exists',
       StatusCodes.CONFLICT,
-    );
+    )
   }
 
-  // 1. Check if file exists since schema marks image as required
-  if (!file) {
-    throw new AppError('Product image is required', StatusCodes.BAD_REQUEST);
+  // 1. Check if files exist since schema marks images as required
+  if (!files || files.length === 0) {
+    throw new AppError('Product images are required', StatusCodes.BAD_REQUEST)
   }
 
-  // 2. Upload to Cloudinary
-  const uploadResult = await uploadToCloudinary(file.path, 'products');
+  // 2. Upload all images to Cloudinary
+  const uploadedImages = await Promise.all(
+    files.map(async (file) => {
+      const uploadResult = await uploadToCloudinary(file.path, 'products')
+      return {
+        url: uploadResult.secure_url,
+        publicId: uploadResult.public_id,
+      }
+    }),
+  )
 
-  // 3. Map to the NEW schema structure (Object, not String)
-  // product.service.ts
-  payload.image = {
-    url: uploadResult.secure_url,
-    publicId: uploadResult.public_id,
-  };
+  // 3. Map to the NEW schema structure (Array of objects)
+  payload.images = uploadedImages
+
   // 4. Create the product
-  const result = await Product.create(payload);
-  return result;
-};
-
+  const result = await Product.create(payload)
+  return result
+}
 
 // Get product by ID
 const getProductById = async (id: string): Promise<IProduct | null> => {
@@ -58,7 +62,7 @@ const getProductById = async (id: string): Promise<IProduct | null> => {
 const updateProduct = async (
   id: string,
   payload: Partial<IProduct>,
-  file?: Express.Multer.File,
+  files?: Express.Multer.File[],
 ): Promise<IProduct | null> => {
   const existingProduct = await Product.isProductExistById(id)
   if (!existingProduct) {
@@ -76,25 +80,32 @@ const updateProduct = async (
     }
   }
 
-  // Upload new image to Cloudinary if file is provided
-  if (file) {
-    const uploadResult = await uploadToCloudinary(file.path, 'products')
-    payload.image = {
-      url: uploadResult.secure_url,
-      publicId: uploadResult.public_id,
-    };
+  // Upload new images to Cloudinary if files are provided
+  if (files && files.length > 0) {
+    const uploadedImages = await Promise.all(
+      files.map(async (file) => {
+        const uploadResult = await uploadToCloudinary(file.path, 'products')
+        return {
+          url: uploadResult.secure_url,
+          publicId: uploadResult.public_id,
+        }
+      }),
+    )
 
-    // Delete old image from Cloudinary if it exists
-    if (existingProduct.image && typeof existingProduct.image === 'string') {
-      const publicIdMatch = (existingProduct.image as string).match(/\/products\/([^/]+)\.[^.]+$/);
-      if (publicIdMatch) {
-        const publicId = `products/${publicIdMatch[1]}`;
-        await deleteFromCloudinary(publicId).catch(() => {
-          // Ignore errors if old image doesn't exist
-        });
-      }
+    payload.images = uploadedImages
+
+    // Delete old images from Cloudinary if they exist
+    if (existingProduct.images && Array.isArray(existingProduct.images)) {
+      await Promise.all(
+        existingProduct.images.map(async (image) => {
+          if (image.publicId) {
+            await deleteFromCloudinary(image.publicId).catch(() => {
+              // Ignore errors if old image doesn't exist
+            })
+          }
+        }),
+      )
     }
-
   }
 
   const result = await Product.findByIdAndUpdate(id, payload, {
@@ -125,18 +136,16 @@ const getProductsByType = async (type: string): Promise<IProduct[]> => {
   return result
 }
 
-
-
 // 1. Get Products by a specific Role ID (Direct Fetch)
 const getProductsByRole = async (roleId: string): Promise<IProduct[]> => {
   // Use 'targetRoles' to match your schema logic
   const result = await Product.find({
     targetRoles: { $in: [roleId] },
-    status: 'active'
-  }).populate('targetRoles', 'roleTitle images');
+    status: 'active',
+  }).populate('targetRoles', 'roleTitle images')
 
-  return result;
-};
+  return result
+}
 
 // 2. Get All Products (With Optional Role Filtering & Query handling)
 // const getAllProducts = async (query: Record<string, unknown>, roleId?: string) => {
@@ -155,19 +164,22 @@ const getProductsByRole = async (roleId: string): Promise<IProduct[]> => {
 // };
 
 // product.service.ts
-const getAllProducts = async (query: Record<string, unknown>, roleId?: string) => {
-  const filter: any = { status: 'active' };
+const getAllProducts = async (
+  query: Record<string, unknown>,
+  roleId?: string,
+) => {
+  const filter: any = { status: 'active' }
 
   if (roleId) {
     // Show products that match the role OR have no specific roles assigned (Global)
     filter.$or = [
       { targetRoles: { $in: [roleId] } },
-      { targetRoles: { $size: 0 } }
-    ];
+      { targetRoles: { $size: 0 } },
+    ]
   }
 
-  return await Product.find(filter).populate('targetRoles');
-};
+  return await Product.find(filter).populate('targetRoles')
+}
 
 const productService = {
   createProduct,

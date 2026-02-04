@@ -18,9 +18,6 @@ const login = async (payload: { email: string; password: string }) => {
       StatusCodes.NOT_FOUND,
     )
 
-  if (user.isVerified === false)
-    throw new AppError('Please verify your email', StatusCodes.UNAUTHORIZED)
-
   const isPasswordValid = await User.isPasswordMatch(password, user.password)
   if (!isPasswordValid)
     throw new AppError('Invalid password', StatusCodes.UNAUTHORIZED)
@@ -28,7 +25,7 @@ const login = async (payload: { email: string; password: string }) => {
   const tokenPayload = {
     id: user._id,
     email: user.email,
-    role: user.role,  
+    role: user.role,
   }
 
   const accessToken = createToken(
@@ -52,7 +49,7 @@ const login = async (payload: { email: string; password: string }) => {
       role: user.role,
       firstName: user.firstName,
       lastName: user.lastName,
-      avatar: user.avatar,
+      image: user.image,
       phoneNumber: user.phoneNumber,
       homeAddress: user.homeAddress,
       city: user.city,
