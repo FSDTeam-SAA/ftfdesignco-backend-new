@@ -28,7 +28,7 @@ const login = async (payload: { email: string; password: string }) => {
   const tokenPayload = {
     id: user._id,
     email: user.email,
-    role: user.role,
+    role: user.role,  
   }
 
   const accessToken = createToken(
@@ -71,7 +71,7 @@ const refreshToken = async (token: string) => {
     if (!decodedToken) {
       throw new AppError('Invalid token', StatusCodes.UNAUTHORIZED)
     }
-  } catch (error) {
+  } catch {
     throw new AppError('You are not authorized', StatusCodes.UNAUTHORIZED)
   }
 
@@ -198,7 +198,7 @@ const verifyOtp = async (email: string, otp: string) => {
       StatusCodes.BAD_REQUEST,
     )
   }
-// test
+  // test
   const isOtpMatched = await bcrypt.compare(
     otp.toString(),
     isExistingUser.resetPasswordOtp,

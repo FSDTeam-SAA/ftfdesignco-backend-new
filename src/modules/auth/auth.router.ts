@@ -22,6 +22,7 @@ router.post(
   '/resend-forgot-otp',
   auth(USER_ROLE.OWNER, USER_ROLE.EMPLOYER),
   authController.resendForgotOtpCode,
+  
 )
 
 router.post(
