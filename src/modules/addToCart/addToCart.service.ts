@@ -51,12 +51,15 @@ const clearCart = async (userId: string): Promise<{ deletedCount: number }> => {
   return { deletedCount: result.deletedCount }
 }
 
+
+
 const addToCartService = {
   addToCart,
   getCartByUserId,
   updateCart,
   removeFromCart,
   clearCart,
+
 }
 
 export default addToCartService
