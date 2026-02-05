@@ -67,6 +67,8 @@ const clearCart = catchAsync(async (req, res) => {
   })
 })
 
+
+
 const addToCartController = {
   addToCart,
   getCartByUserId,

@@ -168,6 +168,19 @@ const getMyPaymentHistoryFromDB = async (userId: string): Promise<IOrder[]> => {
 };
 
 
+const getOrderForUserIDFromDB = async (userId: string): Promise<IOrder[]> => {
+  console.log("Searching history for User ID:", userId);
+
+  const history = await Order.find({
+    user: userId,
+  })
+    .sort({ createdAt: -1 }) // Newest first
+    .populate('products.productId', 'title price'); // Show product details
+
+  return history;
+};
+
+
 
 
 const orderService = {
@@ -178,6 +191,7 @@ const orderService = {
   updateOrderStatus,
   deleteOrder,
   getMyPaymentHistoryFromDB,
+  getOrderForUserIDFromDB
 
 }
 
