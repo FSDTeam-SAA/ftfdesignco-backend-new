@@ -18,7 +18,7 @@ router.post(
 
 router.get(
     '/',
-    auth(USER_ROLE.EMPLOYER),
+    auth(USER_ROLE.OWNER),
     roleController.getAllRoles)
 
     
