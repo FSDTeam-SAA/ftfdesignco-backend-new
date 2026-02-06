@@ -159,9 +159,7 @@ const resendOtpCode = async (email: string) => {
 }
 
 const getAllUsers = async () => {
-  const result = await User.find().select(
-    'username firstName lastName email role',
-  )
+  const result = await User.find()
   return result
 }
 
