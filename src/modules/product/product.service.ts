@@ -1,11 +1,12 @@
-import { StatusCodes } from 'http-status-codes'
-import AppError from '../../errors/AppError'
+import { StatusCodes } from "http-status-codes";
+import AppError from "../../errors/AppError";
 import {
-  uploadToCloudinary,
   deleteFromCloudinary,
-} from '../../utils/cloudinary'
-import { IProduct } from './product.interface'
-import { Product } from './product.model'
+  uploadToCloudinary,
+} from "../../utils/cloudinary";
+import { Order } from "../order/order.model";
+import { IProduct } from "./product.interface";
+import { Product } from "./product.model";
 
 // Create a new product
 const createProduct = async (
@@ -15,18 +16,18 @@ const createProduct = async (
   const existingProduct = await Product.isProductExistByTitle(payload.title);
   if (existingProduct) {
     throw new AppError(
-      'Product with this title already exists',
+      "Product with this title already exists",
       StatusCodes.CONFLICT,
     );
   }
 
   // 1. Check if file exists since schema marks image as required
   if (!file) {
-    throw new AppError('Product image is required', StatusCodes.BAD_REQUEST);
+    throw new AppError("Product image is required", StatusCodes.BAD_REQUEST);
   }
 
   // 2. Upload to Cloudinary
-  const uploadResult = await uploadToCloudinary(file.path, 'products');
+  const uploadResult = await uploadToCloudinary(file.path, "products");
 
   // 3. Map to the NEW schema structure (Object, not String)
   // product.service.ts
@@ -39,20 +40,19 @@ const createProduct = async (
   return result;
 };
 
-
 // Get product by ID
 const getProductById = async (id: string): Promise<IProduct | null> => {
-  const product = await Product.isProductExistById(id)
+  const product = await Product.isProductExistById(id);
   if (!product) {
-    throw new AppError('Product not found', StatusCodes.NOT_FOUND)
+    throw new AppError("Product not found", StatusCodes.NOT_FOUND);
   }
 
   const result = await Product.findById(id).populate(
-    'role',
-    'firstName lastName email',
-  )
-  return result
-}
+    "role",
+    "firstName lastName email",
+  );
+  return result;
+};
 
 // Update product by ID
 const updateProduct = async (
@@ -60,33 +60,35 @@ const updateProduct = async (
   payload: Partial<IProduct>,
   file?: Express.Multer.File,
 ): Promise<IProduct | null> => {
-  const existingProduct = await Product.isProductExistById(id)
+  const existingProduct = await Product.isProductExistById(id);
   if (!existingProduct) {
-    throw new AppError('Product not found', StatusCodes.NOT_FOUND)
+    throw new AppError("Product not found", StatusCodes.NOT_FOUND);
   }
 
   // Check if title is being updated and already exists
   if (payload.title && payload.title !== existingProduct.title) {
-    const titleExists = await Product.isProductExistByTitle(payload.title)
+    const titleExists = await Product.isProductExistByTitle(payload.title);
     if (titleExists) {
       throw new AppError(
-        'Product with this title already exists',
+        "Product with this title already exists",
         StatusCodes.CONFLICT,
-      )
+      );
     }
   }
 
   // Upload new image to Cloudinary if file is provided
   if (file) {
-    const uploadResult = await uploadToCloudinary(file.path, 'products')
+    const uploadResult = await uploadToCloudinary(file.path, "products");
     payload.image = {
       url: uploadResult.secure_url,
       publicId: uploadResult.public_id,
     };
 
     // Delete old image from Cloudinary if it exists
-    if (existingProduct.image && typeof existingProduct.image === 'string') {
-      const publicIdMatch = (existingProduct.image as string).match(/\/products\/([^/]+)\.[^.]+$/);
+    if (existingProduct.image && typeof existingProduct.image === "string") {
+      const publicIdMatch = (existingProduct.image as string).match(
+        /\/products\/([^/]+)\.[^.]+$/,
+      );
       if (publicIdMatch) {
         const publicId = `products/${publicIdMatch[1]}`;
         await deleteFromCloudinary(publicId).catch(() => {
@@ -94,46 +96,43 @@ const updateProduct = async (
         });
       }
     }
-
   }
 
   const result = await Product.findByIdAndUpdate(id, payload, {
     new: true,
     runValidators: true,
-  }).populate('role', 'firstName lastName email')
+  }).populate("role", "firstName lastName email");
 
-  return result
-}
+  return result;
+};
 
 // Delete product by ID
 const deleteProduct = async (id: string): Promise<IProduct | null> => {
-  const existingProduct = await Product.isProductExistById(id)
+  const existingProduct = await Product.isProductExistById(id);
   if (!existingProduct) {
-    throw new AppError('Product not found', StatusCodes.NOT_FOUND)
+    throw new AppError("Product not found", StatusCodes.NOT_FOUND);
   }
 
-  const result = await Product.findByIdAndDelete(id)
-  return result
-}
+  const result = await Product.findByIdAndDelete(id);
+  return result;
+};
 
 // Get products by type
 const getProductsByType = async (type: string): Promise<IProduct[]> => {
   const result = await Product.find({ type }).populate(
-    'role',
-    'firstName lastName email',
-  )
-  return result
-}
-
-
+    "role",
+    "firstName lastName email",
+  );
+  return result;
+};
 
 // 1. Get Products by a specific Role ID (Direct Fetch)
 const getProductsByRole = async (roleId: string): Promise<IProduct[]> => {
   // Use 'targetRoles' to match your schema logic
   const result = await Product.find({
     targetRoles: { $in: [roleId] },
-    status: 'active'
-  }).populate('targetRoles', 'roleTitle images');
+    status: "active",
+  }).populate("targetRoles", "roleTitle images");
 
   return result;
 };
@@ -155,18 +154,69 @@ const getProductsByRole = async (roleId: string): Promise<IProduct[]> => {
 // };
 
 // product.service.ts
-const getAllProducts = async (query: Record<string, unknown>, roleId?: string) => {
-  const filter: any = { status: 'active' };
+const getAllProducts = async (
+  query: Record<string, unknown>,
+  roleId?: string,
+) => {
+  const filter: any = { status: "active" };
 
   if (roleId) {
     // Show products that match the role OR have no specific roles assigned (Global)
     filter.$or = [
       { targetRoles: { $in: [roleId] } },
-      { targetRoles: { $size: 0 } }
+      { targetRoles: { $size: 0 } },
     ];
   }
 
-  return await Product.find(filter).populate('targetRoles');
+  return await Product.find(filter).populate("targetRoles");
+};
+
+const getAllProductInventories = async (page = 1, limit = 10) => {
+  // Calculate skip
+  const skip = (page - 1) * limit;
+
+  // 1️⃣ Get paginated products
+  const products = await Product.find({ status: "active" })
+    .skip(skip)
+    .limit(limit)
+    .lean();
+
+  // 2️⃣ Get total product count
+  const totalProducts = await Product.countDocuments({ status: "active" });
+
+  // 3️⃣ Map each product with total ordered quantity
+  const productsWithOrderQuantity = await Promise.all(
+    products.map(async (product) => {
+      const orders = await Order.aggregate([
+        { $unwind: "$products" },
+        { $match: { "products.productId": product._id } },
+        {
+          $group: {
+            _id: "$products.productId",
+            totalOrderedQuantity: { $sum: "$products.quantity" },
+          },
+        },
+      ]);
+
+      const totalOrderedQuantity =
+        orders.length > 0 ? orders[0].totalOrderedQuantity : 0;
+
+      return {
+        ...product,
+        totalOrderedQuantity,
+      };
+    }),
+  );
+
+  return {
+    data: productsWithOrderQuantity,
+    meta: {
+      total: totalProducts,
+      page,
+      limit,
+      totalPage: Math.ceil(totalProducts / limit),
+    },
+  };
 };
 
 const productService = {
@@ -177,6 +227,7 @@ const productService = {
   deleteProduct,
   getProductsByType,
   getProductsByRole,
-}
+  getAllProductInventories,
+};
 
-export default productService
+export default productService;
