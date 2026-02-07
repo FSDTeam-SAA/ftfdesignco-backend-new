@@ -4,10 +4,10 @@ import { IProduct, productModel } from './product.interface'
 const productSchema = new Schema<IProduct, productModel>(
   {
     // product.model.ts
-    image: {
+    image: [{
       url: { type: String, required: true },
       publicId: { type: String, required: true }
-    },
+    }],
     title: {
       type: String,
       required: true,

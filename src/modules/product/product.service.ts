@@ -11,7 +11,7 @@ import { Product } from "./product.model";
 // Create a new product
 const createProduct = async (
   payload: IProduct,
-  file?: Express.Multer.File,
+  file?: Express.Multer.File[],
 ): Promise<IProduct> => {
   const existingProduct = await Product.isProductExistByTitle(payload.title);
   if (existingProduct) {
@@ -27,14 +27,14 @@ const createProduct = async (
   }
 
   // 2. Upload to Cloudinary
-  const uploadResult = await uploadToCloudinary(file.path, "products");
+  const uploadResult = await uploadToCloudinary(file[0].path, "products");
 
   // 3. Map to the NEW schema structure (Object, not String)
   // product.service.ts
-  payload.image = {
+  payload.image = [{
     url: uploadResult.secure_url,
     publicId: uploadResult.public_id,
-  };
+  }];
   // 4. Create the product
   const result = await Product.create(payload);
   return result;
@@ -58,7 +58,7 @@ const getProductById = async (id: string): Promise<IProduct | null> => {
 const updateProduct = async (
   id: string,
   payload: Partial<IProduct>,
-  file?: Express.Multer.File,
+  file?: Express.Multer.File[],
 ): Promise<IProduct | null> => {
   const existingProduct = await Product.isProductExistById(id);
   if (!existingProduct) {
@@ -78,11 +78,11 @@ const updateProduct = async (
 
   // Upload new image to Cloudinary if file is provided
   if (file) {
-    const uploadResult = await uploadToCloudinary(file.path, "products");
-    payload.image = {
+    const uploadResult = await uploadToCloudinary(file[0].path, "products");
+    payload.image = [{
       url: uploadResult.secure_url,
       publicId: uploadResult.public_id,
-    };
+    }];
 
     // Delete old image from Cloudinary if it exists
     if (existingProduct.image && typeof existingProduct.image === "string") {
@@ -137,21 +137,6 @@ const getProductsByRole = async (roleId: string): Promise<IProduct[]> => {
   return result;
 };
 
-// 2. Get All Products (With Optional Role Filtering & Query handling)
-// const getAllProducts = async (query: Record<string, unknown>, roleId?: string) => {
-//   const filter: any = { status: 'active' };
-
-//   // If a roleId is provided (from the user's profile), we filter the catalog
-//   if (roleId) {
-//     filter.targetRoles = { $in: [roleId] };
-//   }
-
-//   // Combine this with your existing search/pagination logic
-//   const result = await Product.find(filter)
-//     .populate('targetRoles', 'roleTitle images');
-
-//   return result;
-// };
 
 // product.service.ts
 const getAllProducts = async (

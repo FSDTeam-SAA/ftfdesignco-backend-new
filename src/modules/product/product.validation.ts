@@ -2,7 +2,10 @@ import { z } from 'zod'
 
 const createProductValidationSchema = z.object({
   body: z.object({
-    image: z.string().optional(),
+    images: z.array(z.object({
+      url: z.string(),
+      publicId: z.string()
+    })).optional(),
     title: z.string({
       required_error: 'Title is required',
     }),
@@ -38,7 +41,10 @@ const createProductValidationSchema = z.object({
 
 const updateProductValidationSchema = z.object({
   body: z.object({
-    image: z.string().optional(),
+    images: z.array(z.object({
+      url: z.string(),
+      publicId: z.string()
+    })).optional(),
     title: z.string().optional(),
     type: z.string().optional(),
     description: z.string().optional(),
