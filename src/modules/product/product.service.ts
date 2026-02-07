@@ -11,33 +11,24 @@ import { Product } from "./product.model";
 // Create a new product
 const createProduct = async (
   payload: IProduct,
-  file?: Express.Multer.File[],
+  files?: Express.Multer.File[],
 ): Promise<IProduct> => {
-  const existingProduct = await Product.isProductExistByTitle(payload.title);
-  if (existingProduct) {
-    throw new AppError(
-      "Product with this title already exists",
-      StatusCodes.CONFLICT,
-    );
+  if (!files || files.length === 0) {
+    throw new AppError("At least one image is required", StatusCodes.BAD_REQUEST);
   }
 
-  // 1. Check if file exists since schema marks image as required
-  if (!file) {
-    throw new AppError("Product image is required", StatusCodes.BAD_REQUEST);
-  }
+  // Parallel Upload
+  const uploadResults = await Promise.all(
+    files.map((file) => uploadToCloudinary(file.path, "products"))
+  );
 
-  // 2. Upload to Cloudinary
-  const uploadResult = await uploadToCloudinary(file[0].path, "products");
+  // Map ALL results to the array
+  payload.image = uploadResults.map((res) => ({
+    url: res.secure_url,
+    publicId: res.public_id,
+  }));
 
-  // 3. Map to the NEW schema structure (Object, not String)
-  // product.service.ts
-  payload.image = [{
-    url: uploadResult.secure_url,
-    publicId: uploadResult.public_id,
-  }];
-  // 4. Create the product
-  const result = await Product.create(payload);
-  return result;
+  return await Product.create(payload);
 };
 
 // Get product by ID
@@ -58,50 +49,41 @@ const getProductById = async (id: string): Promise<IProduct | null> => {
 const updateProduct = async (
   id: string,
   payload: Partial<IProduct>,
-  file?: Express.Multer.File[],
+  files?: Express.Multer.File[],
 ): Promise<IProduct | null> => {
-  const existingProduct = await Product.isProductExistById(id);
+  const existingProduct = await Product.findById(id);
   if (!existingProduct) {
     throw new AppError("Product not found", StatusCodes.NOT_FOUND);
   }
 
-  // Check if title is being updated and already exists
-  if (payload.title && payload.title !== existingProduct.title) {
-    const titleExists = await Product.isProductExistByTitle(payload.title);
-    if (titleExists) {
-      throw new AppError(
-        "Product with this title already exists",
-        StatusCodes.CONFLICT,
-      );
-    }
-  }
+  // Handle Image Update
+  if (files && files.length > 0) {
+    // 1. Upload new files
+    const uploadResults = await Promise.all(
+      files.map((file) => uploadToCloudinary(file.path, "products"))
+    );
 
-  // Upload new image to Cloudinary if file is provided
-  if (file) {
-    const uploadResult = await uploadToCloudinary(file[0].path, "products");
-    payload.image = [{
-      url: uploadResult.secure_url,
-      publicId: uploadResult.public_id,
-    }];
+    // 2. Prepare new images array
+    payload.image = uploadResults.map((res) => ({
+      url: res.secure_url,
+      publicId: res.public_id,
+    }));
 
-    // Delete old image from Cloudinary if it exists
-    if (existingProduct.image && typeof existingProduct.image === "string") {
-      const publicIdMatch = (existingProduct.image as string).match(
-        /\/products\/([^/]+)\.[^.]+$/,
+    // 3. Delete OLD images from Cloudinary (Cleanup)
+    if (existingProduct.image && existingProduct.image.length > 0) {
+      const deletePromises = existingProduct.image.map((img) =>
+        deleteFromCloudinary(img.publicId)
       );
-      if (publicIdMatch) {
-        const publicId = `products/${publicIdMatch[1]}`;
-        await deleteFromCloudinary(publicId).catch(() => {
-          // Ignore errors if old image doesn't exist
-        });
-      }
+      // We don't await this strictly to speed up response, 
+      // but in Elite SWE, we use Promise.allSettled to ensure we try all.
+      Promise.allSettled(deletePromises);
     }
   }
 
   const result = await Product.findByIdAndUpdate(id, payload, {
     new: true,
     runValidators: true,
-  }).populate("role", "firstName lastName email");
+  });
 
   return result;
 };

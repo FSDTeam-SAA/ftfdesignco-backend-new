@@ -5,7 +5,7 @@ import productService from "./product.service";
 
 // Create a new product
 const createProduct = catchAsync(async (req, res) => {
-  const result = await productService.createProduct(req.body, Array.isArray(req.file) ? req.file : (req.file ? [req.file] : []));
+  const result = await productService.createProduct(req.body, req.files as Express.Multer.File[]);
 
 
   sendResponse(res, {

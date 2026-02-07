@@ -9,7 +9,7 @@ const router = Router();
 // Create product
 router.post(
   "/create",
-  upload.single("image"),
+  upload.array("image", 5), // Changed from .single("image")
   validateRequest(productValidation.createProductValidationSchema),
   productController.createProduct,
 );
@@ -32,7 +32,7 @@ router.get("/user/:roleId", productController.getProductsByRole);
 // Update product by ID
 router.put(
   "/:id",
-  upload.single("image"),
+  upload.array("image", 5), // Match the field name here too
   validateRequest(productValidation.updateProductValidationSchema),
   productController.updateProduct,
 );
