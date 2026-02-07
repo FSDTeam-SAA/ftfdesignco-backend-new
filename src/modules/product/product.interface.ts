@@ -5,7 +5,7 @@ export interface IProduct {
  image: {           // Change this from string to object
     url: string;
     publicId: string;
-  };
+  }[];
   title: string
   type: string
   description: string

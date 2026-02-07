@@ -5,7 +5,8 @@ import productService from "./product.service";
 
 // Create a new product
 const createProduct = catchAsync(async (req, res) => {
-  const result = await productService.createProduct(req.body, req.file);
+  const result = await productService.createProduct(req.body, Array.isArray(req.file) ? req.file : (req.file ? [req.file] : []));
+
 
   sendResponse(res, {
     statusCode: StatusCodes.CREATED,
@@ -15,21 +16,6 @@ const createProduct = catchAsync(async (req, res) => {
   });
 });
 
-// Get all products
-// const getAllProducts = catchAsync(async (req, res) => {
-//   // Extract the role ID that we saved to the user document earlier
-//   const roleId = req.user.selectedRole;
-
-//   // Now the service will look for products matching this Role ID
-//   const result = await productService.getAllProducts(req.query, roleId)
-
-//   sendResponse(res, {
-//     statusCode: StatusCodes.OK,
-//     success: true,
-//     message: 'Personalized catalog retrieved successfully',
-//     data: result,
-//   })
-// })
 
 const getAllProducts = catchAsync(async (req, res) => {
   // Use optional chaining (?.) to prevent crashing if user is undefined
@@ -61,7 +47,7 @@ const getProductById = catchAsync(async (req, res) => {
 // Update product by ID
 const updateProduct = catchAsync(async (req, res) => {
   const { id } = req.params;
-  const result = await productService.updateProduct(id, req.body, req.file);
+  const result = await productService.updateProduct(id, req.body, req.file ? [req.file] : []);
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
