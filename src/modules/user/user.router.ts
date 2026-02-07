@@ -52,5 +52,11 @@ router.get(
   userController.getAdminId,
 );
 
+router.delete(
+  "/delete/:id",
+  // auth(USER_ROLE.OWNER, USER_ROLE.EMPLOYER),
+  userController.deleteUser,
+);
+
 const userRouter = router;
 export default userRouter;

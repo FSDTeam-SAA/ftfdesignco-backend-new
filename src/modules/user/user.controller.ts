@@ -1,8 +1,8 @@
 import { StatusCodes } from "http-status-codes";
+import AppError from "../../errors/AppError";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import userService from "./user.service";
-import AppError from "../../errors/AppError";
 
 const registerUser = catchAsync(async (req, res) => {
   const result = await userService.registerUser(req.body);
@@ -111,6 +111,18 @@ const updateUserProfile = catchAsync(async (req, res) => {
   });
 });
 
+const deleteUser = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const result = await userService.deleteUser(id);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Your account has been deleted successfully.",
+    data: result,
+  });
+});
+
 const userController = {
   registerUser,
   verifyEmail,
@@ -120,6 +132,7 @@ const userController = {
   updateUserProfile,
   getAdminId,
   addEmployee,
+  deleteUser,
 };
 
 export default userController;

@@ -1,4 +1,6 @@
 import bcrypt from "bcrypt";
+import csv from "csv-parser";
+import fs from "fs";
 import { StatusCodes } from "http-status-codes";
 import config from "../../config";
 import AppError from "../../errors/AppError";
@@ -9,11 +11,9 @@ import {
 import sendEmail from "../../utils/sendEmail";
 import { createToken } from "../../utils/tokenGenerate";
 import verificationCodeTemplate from "../../utils/verificationCodeTemplate";
+import { Order } from "../order/order.model";
 import { IUser } from "./user.interface";
 import { User } from "./user.model";
-import fs from "fs";
-import csv from "csv-parser";
-
 
 const registerUser = async (payload: IUser) => {
   const existingUser = await User.isUserExistByEmail(payload.email);
@@ -240,7 +240,6 @@ const addEmployee = async (payload: IUser) => {
   return employee;
 };
 
-
 const addEmployeeByCSV = async (filePath: string) => {
   const rows: any[] = [];
 
@@ -300,6 +299,29 @@ const addEmployeeByCSV = async (filePath: string) => {
   };
 };
 
+const deleteUser = async (id: string) => {
+  // 1️⃣ Find the user
+  const user = await User.findById(id);
+  if (!user) {
+    throw new AppError("User not found", StatusCodes.NOT_FOUND);
+  }
+
+  // 2️⃣ Check if user has any active orders (not delivered)
+  const activeOrdersCount = await Order.countDocuments({
+    user: user._id,
+    status: { $ne: "delivered" }, // status != delivered
+  });
+
+  if (activeOrdersCount > 0) {
+    throw new AppError(
+      "Cannot delete user. User has orders that are not delivered.",
+      StatusCodes.BAD_REQUEST,
+    );
+  }
+
+  // 3️⃣ Safe to delete user
+  await User.deleteOne({ _id: user._id });
+};
 
 const userService = {
   registerUser,
@@ -311,6 +333,7 @@ const userService = {
   getAdminId,
   addEmployee,
   addEmployeeByCSV,
+  deleteUser,
 };
 
 export default userService;
