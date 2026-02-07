@@ -11,6 +11,9 @@ import { createToken } from "../../utils/tokenGenerate";
 import verificationCodeTemplate from "../../utils/verificationCodeTemplate";
 import { IUser } from "./user.interface";
 import { User } from "./user.model";
+import fs from "fs";
+import csv from "csv-parser";
+
 
 const registerUser = async (payload: IUser) => {
   const existingUser = await User.isUserExistByEmail(payload.email);
@@ -217,6 +220,87 @@ const updateUserProfile = async (payload: any, email: string, file: any) => {
   return result;
 };
 
+const addEmployee = async (payload: IUser) => {
+  const existingUser = await User.findOne({ email: payload.email });
+  if (existingUser) {
+    throw new AppError("Employee already exists", 409);
+  }
+
+  const defaultPassword = "123456";
+
+  const employee = await User.create({
+    ...payload,
+    password: payload.password ? payload.password : defaultPassword,
+    isVerified: true,
+    otp: null,
+    otpExpires: null,
+    role: "employer",
+  });
+
+  return employee;
+};
+
+
+const addEmployeeByCSV = async (filePath: string) => {
+  const rows: any[] = [];
+
+  // 1️⃣ Parse CSV
+  await new Promise<void>((resolve, reject) => {
+    fs.createReadStream(filePath)
+      .pipe(csv())
+      .on("data", (row) => rows.push(row))
+      .on("end", resolve)
+      .on("error", reject);
+  });
+
+  let success = 0;
+  let failed = 0;
+  const errors: any[] = [];
+
+  // 2️⃣ Process rows
+  for (const row of rows) {
+    try {
+      // 🔹 Email check
+      if (!row.email || row.email.trim() === "") {
+        throw new Error(
+          `Email missing for ${row.firstName || ""} ${row.lastName || ""}`,
+        );
+      }
+
+      // 🔹 Duplicate email check
+      const existingUser = await User.findOne({ email: row.email });
+      if (existingUser) {
+        throw new Error(`User already exists: ${row.email}`);
+      }
+
+      // 🔹 Default password if missing
+      if (!row.password || row.password.trim() === "") {
+        row.password = "123456"; // default password
+      }
+
+      await addEmployee(row); // reuse single employee logic
+      success++;
+    } catch (err: any) {
+      failed++;
+      errors.push({
+        email: row.email || `${row.firstName || ""} ${row.lastName || ""}`,
+        reason: err.message,
+      });
+    }
+  }
+
+  // 3️⃣ Optional: delete CSV after processing
+  fs.unlinkSync(filePath);
+
+  return {
+    total: rows.length,
+    success,
+    failed,
+    errors,
+  };
+};
+
+
 const userService = {
   registerUser,
   verifyEmail,
@@ -225,6 +309,8 @@ const userService = {
   getMyProfile,
   updateUserProfile,
   getAdminId,
+  addEmployee,
+  addEmployeeByCSV,
 };
 
 export default userService;

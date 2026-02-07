@@ -2,18 +2,11 @@ import { StatusCodes } from "http-status-codes";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import userService from "./user.service";
-import config from "../../config";
+import AppError from "../../errors/AppError";
 
 const registerUser = catchAsync(async (req, res) => {
   const result = await userService.registerUser(req.body);
-
-  const { refreshToken, accessToken, user } = result;
-  res.cookie("refreshToken", refreshToken, {
-    httpOnly: true,
-    secure: config.NODE_ENV === "production",
-    sameSite: config.NODE_ENV === "production" ? "none" : "lax",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
+  const { accessToken, user } = result;
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -23,6 +16,28 @@ const registerUser = catchAsync(async (req, res) => {
       accessToken,
       user,
     },
+  });
+});
+
+const addEmployee = catchAsync(async (req, res) => {
+  let result;
+
+  // ✅ CSV upload case
+  if (req.file) {
+    result = await userService.addEmployeeByCSV(req.file.path);
+  }
+  // ✅ Single employee JSON case
+  else if (req.body?.email) {
+    result = await userService.addEmployee(req.body);
+  } else {
+    throw new AppError("Invalid request", StatusCodes.BAD_REQUEST);
+  }
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Employee processed successfully",
+    data: result,
   });
 });
 
@@ -104,6 +119,7 @@ const userController = {
   getMyProfile,
   updateUserProfile,
   getAdminId,
+  addEmployee,
 };
 
 export default userController;

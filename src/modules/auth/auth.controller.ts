@@ -6,7 +6,6 @@ import authService from "./auth.service";
 const login = catchAsync(async (req, res) => {
   const result = await authService.login(req.body);
 
-
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
