@@ -26,6 +26,7 @@ const corsOptions = {
     "http://localhost:3000",
     "http://localhost:3001",
     "https://pjswag-store.vercel.app",
+    "https://pjswag-dashboard.vercel.app/login",
   ],
   methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE"],
   credentials: true,
