@@ -1,7 +1,7 @@
 import bcrypt from 'bcrypt'
 import { model, Schema } from 'mongoose'
 import config from '../../config'
-import { applyEncryption } from '../../middleware/encryptionMiddleware'
+// import { applyEncryption } from '../../middleware/encryptionMiddleware'
 import { IUser, userModel } from './user.interface'
 
 const userSchema = new Schema<IUser>(
@@ -106,12 +106,12 @@ userSchema.statics.isUserExistById = async function (
   return await User.findOne({ _id })
 }
 
-applyEncryption(userSchema, [
-  'phoneNumber',
-  'homeAddress',
-  'city',
-  'region',
-  'location',
-])
+// applyEncryption(userSchema, [
+//   'phoneNumber',
+//   'homeAddress',
+//   'city',
+//   'region',
+//   'location',
+// ])
 
 export const User = model<IUser, userModel>('User', userSchema)
