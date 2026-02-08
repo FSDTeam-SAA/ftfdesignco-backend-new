@@ -34,7 +34,7 @@ const getAllProducts = catchAsync(async (req, res) => {
 // Get product by ID
 const getProductById = catchAsync(async (req, res) => {
   const { id } = req.params;
-  const result = await productService.getProductById(id);
+  const result = await productService.getProductById(id as string);
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -51,7 +51,7 @@ const updateProduct = catchAsync(async (req, res) => {
   // Cast req.files to the correct Multer Array type
   const files = req.files as Express.Multer.File[];
 
-  const result = await productService.updateProduct(id, req.body, files);
+  const result = await productService.updateProduct(id as string, req.body, files);
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -64,7 +64,7 @@ const updateProduct = catchAsync(async (req, res) => {
 // Delete product by ID
 const deleteProduct = catchAsync(async (req, res) => {
   const { id } = req.params;
-  const result = await productService.deleteProduct(id);
+  const result = await productService.deleteProduct(id as string);
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -77,7 +77,7 @@ const deleteProduct = catchAsync(async (req, res) => {
 // Get products by type
 const getProductsByType = catchAsync(async (req, res) => {
   const { type } = req.params;
-  const result = await productService.getProductsByType(type);
+  const result = await productService.getProductsByType(type as string);
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -90,7 +90,7 @@ const getProductsByType = catchAsync(async (req, res) => {
 // Get products by user/role
 const getProductsByRole = catchAsync(async (req, res) => {
   const { roleId } = req.params;
-  const result = await productService.getProductsByRole(roleId);
+  const result = await productService.getProductsByRole(roleId as string);
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,

@@ -1,20 +1,20 @@
-import { StatusCodes } from 'http-status-codes'
-import catchAsync from '../../utils/catchAsync'
-import sendResponse from '../../utils/sendResponse'
-import orderService from './order.service'
-import AppError from '../../errors/AppError'
+import { StatusCodes } from "http-status-codes";
+import AppError from "../../errors/AppError";
+import catchAsync from "../../utils/catchAsync";
+import sendResponse from "../../utils/sendResponse";
+import orderService from "./order.service";
 
 // Create a new order
 const createOrder = catchAsync(async (req, res) => {
-  const result = await orderService.createOrder(req.body)
+  const result = await orderService.createOrder(req.body);
 
   sendResponse(res, {
     statusCode: StatusCodes.CREATED,
     success: true,
-    message: 'Payment successful',
+    message: "Payment successful",
     data: result,
-  })
-})
+  });
+});
 
 // Get all orders
 
@@ -25,7 +25,7 @@ const getAllOrders = catchAsync(async (req, res) => {
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: 'Orders retrieved successfully',
+    message: "Orders retrieved successfully",
     meta: result.meta, // Include pagination info here
     data: result.data,
   });
@@ -34,64 +34,63 @@ const getAllOrders = catchAsync(async (req, res) => {
 // Get order by ID
 const getOrderById = catchAsync(async (req, res) => {
   const { id } = req.params;
-  const result = await orderService.getOrderById(id);
+  const result = await orderService.getOrderById(id as string);
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: 'Order retrieved successfully',
+    message: "Order retrieved successfully",
     data: result,
   });
 });
 
 // Get orders by user ID
 const getOrdersByUserId = catchAsync(async (req, res) => {
-  const { userId } = req.params
-  const result = await orderService.getOrdersByUserId(userId)
+  const { userId } = req.params;
+  const result = await orderService.getOrdersByUserId(userId as string);
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: 'Orders retrieved successfully',
+    message: "Orders retrieved successfully",
     data: result,
-  })
-})
+  });
+});
 
 // Update order status
 const updateOrderStatus = catchAsync(async (req, res) => {
-  const { id } = req.params
-  const result = await orderService.updateOrderStatus(id, req.body)
+  const { id } = req.params;
+  const result = await orderService.updateOrderStatus(id as string, req.body);
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: 'Order status updated successfully',
+    message: "Order status updated successfully",
     data: result,
-  })
-})
+  });
+});
 
 // Delete order by ID
 const deleteOrder = catchAsync(async (req, res) => {
-  const { id } = req.params
-  const result = await orderService.deleteOrder(id)
+  const { id } = req.params;
+  const result = await orderService.deleteOrder(id as string);
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: 'Order deleted successfully',
+    message: "Order deleted successfully",
     data: result,
-  })
-})
+  });
+});
 
 const getMyHistory = catchAsync(async (req, res) => {
-  // 1. Debug: See what is actually inside the token
-  console.log("Full req.user object:", req.user); 
-
-  // 2. Try to get the ID from common keys
-  const userId = req.user?._id || req.user?.id || req.user?.userId;
+  const { userId } = req.user;
 
   if (!userId) {
-     throw new AppError("User identity not found in token", StatusCodes.UNAUTHORIZED);
+    throw new AppError(
+      "User identity not found in token",
+      StatusCodes.UNAUTHORIZED,
+    );
   }
 
   const result = await orderService.getMyPaymentHistoryFromDB(userId);
@@ -99,14 +98,10 @@ const getMyHistory = catchAsync(async (req, res) => {
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: 'Payment history retrieved successfully',
+    message: "Payment history retrieved successfully",
     data: result,
   });
 });
-
-
-
-
 
 const orderController = {
   createOrder,
@@ -116,7 +111,6 @@ const orderController = {
   updateOrderStatus,
   deleteOrder,
   getMyHistory,
-  
-}
+};
 
-export default orderController
+export default orderController;

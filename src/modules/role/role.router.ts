@@ -28,4 +28,5 @@ router.patch(
   roleController.setUserRole,
 );
 
-export const roleRouter = router;
+const roleRouter = router;
+export default roleRouter;

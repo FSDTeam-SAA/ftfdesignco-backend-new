@@ -38,7 +38,8 @@ const corsOptions = {
 export const applySecurity = (app: Application) => {
   /* 1️⃣ Handle CORS first (IMPORTANT) */
   app.use(cors(corsOptions));
-  app.options("*", cors(corsOptions)); // Preflight handle
+  // app.options("/*", cors(corsOptions)); // Preflight handle
+  // app.options("/api/:path(*)", cors(corsOptions)); // path param explicit
 
   /* 2️⃣ Helmet security headers */
   app.use(

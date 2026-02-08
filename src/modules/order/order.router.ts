@@ -41,7 +41,7 @@ router.delete(
 
 
 router.get(
-    '/:user/my-history',
+    '/user/my-history',
     auth(USER_ROLE.EMPLOYER),
     orderController.getMyHistory
 );
