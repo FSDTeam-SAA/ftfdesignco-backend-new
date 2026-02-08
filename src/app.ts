@@ -6,6 +6,7 @@ import { applySecurity } from "./middleware/security";
 import router from "./router";
 import httpLogger from "./httpLogger";
 import cors from 'cors';
+import { serverTemplate } from "./utils/serverTemplate";
 
 const app: Application = express();
 
@@ -45,9 +46,7 @@ applySecurity(app);
 
 app.use("/api/v1", router);
 
-app.get("/", (_req, res) => {
-  res.send("Hey there! Welcome to our API.");
-});
+app.get("/", serverTemplate);
 
 app.use(notFound);
 app.use(globalErrorHandler);
