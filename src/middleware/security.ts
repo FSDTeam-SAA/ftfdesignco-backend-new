@@ -11,6 +11,7 @@ const globalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: "Too many requests, try again later.",
+  skip: (req) => req.method === "OPTIONS",
 });
 
 export const loginLimiter = rateLimit({
@@ -19,6 +20,7 @@ export const loginLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: "Too many login attempts, try again later.",
+  skip: (req) => req.method === "OPTIONS",
 });
 
 const corsOptions = {
@@ -30,30 +32,39 @@ const corsOptions = {
   ],
   methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
   credentials: true,
+  optionsSuccessStatus: 204,
 };
 
 export const applySecurity = (app: Application) => {
-  app.use(globalLimiter);
+  /* 1️⃣ Handle CORS first (IMPORTANT) */
+  app.use(cors(corsOptions));
+  app.options("*", cors(corsOptions)); // Preflight handle
 
+  /* 2️⃣ Helmet security headers */
   app.use(
     helmet({
-      contentSecurityPolicy: false,
-      crossOriginEmbedderPolicy: true,
+      contentSecurityPolicy: false, // frontend (Next/Vercel) এর জন্য safe
+      crossOriginEmbedderPolicy: false,
     }),
   );
+
   app.use(helmet.frameguard({ action: "deny" }));
   app.use(helmet.noSniff());
 
-  app.use(cors(corsOptions));
+  /* 3️⃣ Rate limiting */
+  app.use(globalLimiter);
 
-  //! When you want to allow specific query parameters to be duplicated in the query string, you can use the whitelist option.
+  /* 4️⃣ Prevent HTTP parameter pollution */
   app.use(
     hpp({
-      whitelist: ["products"],
+      whitelist: ["products"], // duplicate allowed params
     }),
   );
+
+  /* 5️⃣ Compression */
   app.use(compression());
 
+  /* 6️⃣ Body parsers (payload protection) */
   app.use(express.json({ limit: "10kb" }));
   app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 };
