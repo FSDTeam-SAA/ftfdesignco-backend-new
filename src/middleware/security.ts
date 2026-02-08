@@ -28,7 +28,7 @@ const corsOptions = {
     "https://pjswag-store.vercel.app",
     "https://pjswag-dashboard.vercel.app/login",
   ],
-  methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE"],
+  methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
   credentials: true,
 };
 
