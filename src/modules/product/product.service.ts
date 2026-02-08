@@ -52,34 +52,32 @@ const updateProduct = async (
   files?: Express.Multer.File[],
 ): Promise<IProduct | null> => {
   const existingProduct = await Product.findById(id);
-  if (!existingProduct) {
-    throw new AppError("Product not found", StatusCodes.NOT_FOUND);
-  }
+  if (!existingProduct) throw new AppError("Product not found", StatusCodes.NOT_FOUND);
 
-  // Handle Image Update
   if (files && files.length > 0) {
-    // 1. Upload new files
+    // 1. Upload new batch
     const uploadResults = await Promise.all(
       files.map((file) => uploadToCloudinary(file.path, "products"))
     );
 
-    // 2. Prepare new images array
+    // 2. Set new image array in payload
     payload.image = uploadResults.map((res) => ({
       url: res.secure_url,
       publicId: res.public_id,
     }));
 
-    // 3. Delete OLD images from Cloudinary (Cleanup)
+    // 3. Cleanup: Trigger deletion of old images
     if (existingProduct.image && existingProduct.image.length > 0) {
       const deletePromises = existingProduct.image.map((img) =>
         deleteFromCloudinary(img.publicId)
       );
-      // We don't await this strictly to speed up response, 
-      // but in Elite SWE, we use Promise.allSettled to ensure we try all.
+      // Fire and forget, or use Promise.allSettled if you need logs
       Promise.allSettled(deletePromises);
     }
   }
 
+  // If no files are provided, the payload.image remains undefined, 
+  // so findByIdAndUpdate won't touch the existing images.
   const result = await Product.findByIdAndUpdate(id, payload, {
     new: true,
     runValidators: true,

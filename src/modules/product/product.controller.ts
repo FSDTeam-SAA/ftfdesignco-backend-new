@@ -47,7 +47,11 @@ const getProductById = catchAsync(async (req, res) => {
 // Update product by ID
 const updateProduct = catchAsync(async (req, res) => {
   const { id } = req.params;
-  const result = await productService.updateProduct(id, req.body, req.file ? [req.file] : []);
+
+  // Cast req.files to the correct Multer Array type
+  const files = req.files as Express.Multer.File[];
+
+  const result = await productService.updateProduct(id, req.body, files);
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
