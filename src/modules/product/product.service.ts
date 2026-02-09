@@ -140,9 +140,9 @@ const getProductsByType = async (type: string): Promise<IProduct[]> => {
 const getProductsByRole = async (roleId: string): Promise<IProduct[]> => {
   // Use 'targetRoles' to match your schema logic
   const result = await Product.find({
-    targetRoles: { $in: [roleId] },
+    role: { $in: [roleId] },
     status: 'active',
-  }).populate('targetRoles', 'roleTitle images')
+  }).populate('role', 'roleTitle images')
 
   return result
 }

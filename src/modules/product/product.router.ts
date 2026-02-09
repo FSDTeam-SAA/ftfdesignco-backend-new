@@ -17,14 +17,14 @@ router.post(
 // Get all products
 router.get('/all', productController.getAllProducts)
 
-// Get product by ID
-router.get('/:id', productController.getProductById)
-
 // Get products by type
 router.get('/type/:type', productController.getProductsByType)
 
 // Get products by user/role
 router.get('/user/:roleId', productController.getProductsByRole)
+
+// Get product by ID (must be last among GET routes)
+router.get('/:id', productController.getProductById)
 
 // Update product by ID
 router.put(
