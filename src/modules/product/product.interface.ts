@@ -17,6 +17,7 @@ export interface IProduct {
   status: 'active' | 'deactive'
   createdAt?: Date
   updatedAt?: Date
+  rigion?: string 
 }
 
 export interface productModel extends Model<IProduct> {

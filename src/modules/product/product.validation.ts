@@ -36,6 +36,9 @@ const createProductValidationSchema = z.object({
       required_error: 'Role (User ID) is required',
     }),
     status: z.enum(['active', 'deactive']).optional(),
+    rigion: z.string({
+      required_error: "Rigion is required"
+    })
   }),
 })
 

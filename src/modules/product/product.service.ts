@@ -75,14 +75,14 @@ const updateProduct = async (
     );
 
     // 2. Set new image array in payload
-    payload.image = uploadResults.map((res) => ({
+    payload.images = uploadResults.map((res) => ({
       url: res.secure_url,
       publicId: res.public_id,
     }));
 
     // 3. Cleanup: Trigger deletion of old images
-    if (existingProduct.image && existingProduct.image.length > 0) {
-      const deletePromises = existingProduct.image.map((img) =>
+    if (existingProduct.images && existingProduct.images.length > 0) {
+      const deletePromises = existingProduct.images.map((img) =>
         deleteFromCloudinary(img.publicId)
       );
       // Fire and forget, or use Promise.allSettled if you need logs
@@ -224,6 +224,21 @@ const getAllProductInventories = async (page = 1, limit = 10) => {
   };
 };
 
+const getRigionProducts = async (page: number, limit: number, productRigion: string) => {
+  // Calculate skip
+  const skip = (page - 1) * limit;
+
+  // 1️⃣ Get paginated products
+  const products = await Product.find({ rigion: productRigion })
+    .skip(skip)
+    .limit(limit)
+    .lean();
+
+  return {
+    products
+  };
+};
+
 const productService = {
   createProduct,
   getAllProducts,
@@ -233,6 +248,7 @@ const productService = {
   getProductsByType,
   getProductsByRole,
   getAllProductInventories,
+  getRigionProducts
 };
 
 export default productService;
