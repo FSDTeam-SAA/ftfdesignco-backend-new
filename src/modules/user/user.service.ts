@@ -325,8 +325,6 @@ const deleteUser = async (id: string) => {
 
 const userService = {
   registerUser,
-  verifyEmail,
-  resendOtpCode,
   getAllUsers,
   getMyProfile,
   updateUserProfile,

@@ -13,23 +13,37 @@ const createProduct = async (
   payload: IProduct,
   files?: Express.Multer.File[],
 ): Promise<IProduct> => {
-  if (!files || files.length === 0) {
-    throw new AppError("At least one image is required", StatusCodes.BAD_REQUEST);
+  const existingProduct = await Product.isProductExistByTitle(payload.title)
+  if (existingProduct) {
+    throw new AppError(
+      'Product with this title already exists',
+      StatusCodes.CONFLICT,
+    )
   }
 
-  // Parallel Upload
-  const uploadResults = await Promise.all(
-    files.map((file) => uploadToCloudinary(file.path, "products"))
-  );
+  // 1. Check if files exist since schema marks images as required
+  if (!files || files.length === 0) {
+    throw new AppError('Product images are required', StatusCodes.BAD_REQUEST)
+  }
 
-  // Map ALL results to the array
-  payload.image = uploadResults.map((res) => ({
-    url: res.secure_url,
-    publicId: res.public_id,
-  }));
+  // 2. Upload all images to Cloudinary
+  const uploadedImages = await Promise.all(
+    files.map(async (file) => {
+      const uploadResult = await uploadToCloudinary(file.path, 'products')
+      return {
+        url: uploadResult.secure_url,
+        publicId: uploadResult.public_id,
+      }
+    }),
+  )
 
-  return await Product.create(payload);
-};
+  // 3. Map to the NEW schema structure (Array of objects)
+  payload.images = uploadedImages
+
+  // 4. Create the product
+  const result = await Product.create(payload)
+  return result
+}
 
 // Get product by ID
 const getProductById = async (id: string): Promise<IProduct | null> => {
@@ -76,8 +90,34 @@ const updateProduct = async (
     }
   }
 
-  // If no files are provided, the payload.image remains undefined, 
-  // so findByIdAndUpdate won't touch the existing images.
+  // Upload new images to Cloudinary if files are provided
+  if (files && files.length > 0) {
+    const uploadedImages = await Promise.all(
+      files.map(async (file) => {
+        const uploadResult = await uploadToCloudinary(file.path, 'products')
+        return {
+          url: uploadResult.secure_url,
+          publicId: uploadResult.public_id,
+        }
+      }),
+    )
+
+    payload.images = uploadedImages
+
+    // Delete old images from Cloudinary if they exist
+    if (existingProduct.images && Array.isArray(existingProduct.images)) {
+      await Promise.all(
+        existingProduct.images.map(async (image) => {
+          if (image.publicId) {
+            await deleteFromCloudinary(image.publicId).catch(() => {
+              // Ignore errors if old image doesn't exist
+            })
+          }
+        }),
+      )
+    }
+  }
+
   const result = await Product.findByIdAndUpdate(id, payload, {
     new: true,
     runValidators: true,
@@ -100,22 +140,22 @@ const deleteProduct = async (id: string): Promise<IProduct | null> => {
 // Get products by type
 const getProductsByType = async (type: string): Promise<IProduct[]> => {
   const result = await Product.find({ type }).populate(
-    "role",
-    "firstName lastName email",
-  );
-  return result;
-};
+    'role',
+    'firstName lastName email',
+  )
+  return result
+}
 
 // 1. Get Products by a specific Role ID (Direct Fetch)
 const getProductsByRole = async (roleId: string): Promise<IProduct[]> => {
   // Use 'targetRoles' to match your schema logic
   const result = await Product.find({
-    targetRoles: { $in: [roleId] },
-    status: "active",
-  }).populate("targetRoles", "roleTitle images");
+    role: { $in: [roleId] },
+    status: 'active',
+  }).populate('role', 'roleTitle images')
 
-  return result;
-};
+  return result
+}
 
 
 // product.service.ts
@@ -123,7 +163,7 @@ const getAllProducts = async (
   query: Record<string, unknown>,
   roleId?: string,
 ) => {
-  const filter: any = { status: "active" };
+  const filter: any = { status: 'active' }
 
   if (roleId) {
     // Show products that match the role OR have no specific roles assigned (Global)
