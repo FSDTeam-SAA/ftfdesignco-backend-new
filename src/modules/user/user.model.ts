@@ -37,13 +37,13 @@ const userSchema = new Schema<IUser>(
     },
     selectedRole: {
       type: Schema.Types.ObjectId,
-      ref: "Role",
+      ref: 'Role',
       default: null,
     },
     role: {
       type: String,
-      enum: ["owner", "employer"],
-      default: "owner",
+      enum: ['owner', 'employer'],
+      default: 'employer',
     },
     image: {
       url: { type: String },
@@ -69,7 +69,7 @@ const userSchema = new Schema<IUser>(
     },
     role_id: {
       type: Schema.Types.ObjectId,
-      ref: "Role",
+      ref: 'Role',
       default: null,
     },
     isVerified: {
@@ -92,7 +92,7 @@ const userSchema = new Schema<IUser>(
     timestamps: true,
     versionKey: false,
   },
-);
+)
 
 userSchema.pre("save", async function (this: IUser, next) {
   this.password = await bcrypt.hash(
