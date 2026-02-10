@@ -131,6 +131,8 @@ const userController = {
   getAdminId,
   addEmployee,
   deleteUser,
+  verifyEmail,
+  resendOtpCode,
 };
 
 export default userController

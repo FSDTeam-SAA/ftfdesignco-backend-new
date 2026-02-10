@@ -1,8 +1,8 @@
-import bcrypt from 'bcrypt'
-import { model, Schema } from 'mongoose'
-import config from '../../config'
+import bcrypt from "bcrypt";
+import { model, Schema } from "mongoose";
+import config from "../../config";
 // import { applyEncryption } from '../../middleware/encryptionMiddleware'
-import { IUser, userModel } from './user.interface'
+import { IUser, userModel } from "./user.interface";
 
 const userSchema = new Schema<IUser>(
   {
@@ -37,13 +37,13 @@ const userSchema = new Schema<IUser>(
     },
     selectedRole: {
       type: Schema.Types.ObjectId,
-      ref: 'Role',
+      ref: "Role",
       default: null,
     },
     role: {
       type: String,
-      enum: ['owner', 'employer'],
-      default: 'owner',
+      enum: ["owner", "employer"],
+      default: "owner",
     },
     image: {
       url: { type: String },
@@ -69,48 +69,63 @@ const userSchema = new Schema<IUser>(
     },
     role_id: {
       type: Schema.Types.ObjectId,
-      ref: 'Role',
+      ref: "Role",
       default: null,
+    },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    otp: {
+      type: String,
+      default: null,
+    },
+    otpExpires: {
+      type: Date,
+      default: null,
+    },
+    avatar: {
+      type: String,
     },
   },
   {
     timestamps: true,
     versionKey: false,
   },
-)
+);
 
-userSchema.pre('save', async function (this: IUser, next) {
+userSchema.pre("save", async function (this: IUser, next) {
   this.password = await bcrypt.hash(
     this.password,
     Number(config.bcryptSaltRounds),
-  )
+  );
 
-  next()
-})
+  next();
+});
 
-userSchema.post('save', function (doc: IUser, next) {
-  doc.password = ''
-  next()
-})
+userSchema.post("save", function (doc: IUser, next) {
+  doc.password = "";
+  next();
+});
 
 userSchema.statics.isPasswordMatch = async function (
   password: string,
   hashedPassword: string,
 ) {
-  return await bcrypt.compare(password, hashedPassword)
-}
+  return await bcrypt.compare(password, hashedPassword);
+};
 
 userSchema.statics.isUserExistByEmail = async function (
   email: string,
 ): Promise<IUser | null> {
-  return await User.findOne({ email })
-}
+  return await User.findOne({ email });
+};
 
 userSchema.statics.isUserExistById = async function (
   _id: string,
 ): Promise<IUser | null> {
-  return await User.findOne({ _id })
-}
+  return await User.findOne({ _id });
+};
 
 // applyEncryption(userSchema, [
 //   'phoneNumber',
@@ -120,4 +135,4 @@ userSchema.statics.isUserExistById = async function (
 //   'location',
 // ])
 
-export const User = model<IUser, userModel>('User', userSchema)
+export const User = model<IUser, userModel>("User", userSchema);

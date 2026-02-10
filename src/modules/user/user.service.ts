@@ -332,6 +332,8 @@ const userService = {
   addEmployee,
   addEmployeeByCSV,
   deleteUser,
+  resendOtpCode,
+  verifyEmail,
 };
 
 export default userService;
