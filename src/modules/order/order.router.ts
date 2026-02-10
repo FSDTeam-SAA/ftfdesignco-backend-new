@@ -25,7 +25,7 @@ router.get(
 
 router.get(
     '/user/:userId',
-    auth(USER_ROLE.OWNER),
+    auth(USER_ROLE.EMPLOYER),
     orderController.getOrdersByUserId);
 
 
@@ -41,7 +41,7 @@ router.delete(
 
 
 router.get(
-    '/:user/my-history',
+    '/user/my-history',
     auth(USER_ROLE.EMPLOYER),
     orderController.getMyHistory
 );

@@ -1,10 +1,10 @@
-import { Router } from 'express'
-import productController from './product.controller'
-import validateRequest from '../../middleware/validateRequest'
-import { productValidation } from './product.validation'
-import { upload } from '../../middleware/multer.middleware'
+import { Router } from "express";
+import { upload } from "../../middleware/multer.middleware";
+import validateRequest from "../../middleware/validateRequest";
+import productController from "./product.controller";
+import { productValidation } from "./product.validation";
 
-const router = Router()
+const router = Router();
 
 // Create product
 router.post(
@@ -12,16 +12,19 @@ router.post(
   upload.array('images', 10),
   validateRequest(productValidation.createProductValidationSchema),
   productController.createProduct,
-)
+);
 
 // Get all products
-router.get('/all', productController.getAllProducts)
+router.get("/all", productController.getAllProducts);
+
+// Get all product inventories
+router.get("/inventories", productController.getAllProductInventories);
 
 // Get products by type
-router.get('/type/:type', productController.getProductsByType)
+router.get("/type/:type", productController.getProductsByType);
 
 // Get products by user/role
-router.get('/user/:roleId', productController.getProductsByRole)
+router.get("/user/:roleId", productController.getProductsByRole);
 
 // Get product by ID (must be last among GET routes)
 router.get('/:id', productController.getProductById)
@@ -32,10 +35,10 @@ router.put(
   upload.array('images', 10),
   validateRequest(productValidation.updateProductValidationSchema),
   productController.updateProduct,
-)
+);
 
 // Delete product by ID
-router.delete('/:id', productController.deleteProduct)
+router.delete("/:id", productController.deleteProduct);
 
-const productRouter = router
-export default productRouter
+const productRouter = router;
+export default productRouter;

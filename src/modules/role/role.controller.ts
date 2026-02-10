@@ -45,7 +45,7 @@ const getAllRoles = catchAsync(async (req, res) => {
 // Get role by ID
 const getRoleById = catchAsync(async (req, res) => {
   const { id } = req.params
-  const result = await roleService.getRoleById(id)
+  const result = await roleService.getRoleById(id as string)
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -58,7 +58,7 @@ const getRoleById = catchAsync(async (req, res) => {
 // Update role by ID
 const updateRole = catchAsync(async (req, res) => {
   const { id } = req.params
-  const result = await roleService.updateRole(id, req.body)
+  const result = await roleService.updateRole(id as string, req.body)
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -71,7 +71,7 @@ const updateRole = catchAsync(async (req, res) => {
 // Delete role by ID
 const deleteRole = catchAsync(async (req, res) => {
   const { id } = req.params
-  const result = await roleService.deleteRole(id)
+  const result = await roleService.deleteRole(id as string)
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,

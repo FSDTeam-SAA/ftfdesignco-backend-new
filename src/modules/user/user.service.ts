@@ -1,62 +1,83 @@
-import bcrypt from 'bcrypt'
-import { StatusCodes } from 'http-status-codes'
-import config from '../../config'
-import AppError from '../../errors/AppError'
+import bcrypt from "bcrypt";
+import csv from "csv-parser";
+import fs from "fs";
+import { StatusCodes } from "http-status-codes";
+import config from "../../config";
+import AppError from "../../errors/AppError";
 import {
   deleteFromCloudinary,
   uploadToCloudinary,
-} from '../../utils/cloudinary'
-import sendEmail from '../../utils/sendEmail'
-import { createToken } from '../../utils/tokenGenerate'
-import verificationCodeTemplate from '../../utils/verificationCodeTemplate'
-import { IUser } from './user.interface'
-import { User } from './user.model'
+} from "../../utils/cloudinary";
+import sendEmail from "../../utils/sendEmail";
+import { createToken } from "../../utils/tokenGenerate";
+import verificationCodeTemplate from "../../utils/verificationCodeTemplate";
+import { Order } from "../order/order.model";
+import { IUser } from "./user.interface";
+import { User } from "./user.model";
 
-const registerUser = async (payload: IUser, file?: any) => {
-  const existingUser = await User.isUserExistByEmail(payload.email)
-  if (existingUser) {
-    throw new AppError('User already exists', StatusCodes.CONFLICT)
+const registerUser = async (payload: IUser) => {
+  const existingUser = await User.isUserExistByEmail(payload.email);
+  if (existingUser && existingUser.isVerified) {
+    throw new AppError("User already exists", StatusCodes.CONFLICT);
   }
 
   // Password check
   if (payload.password.length < 6) {
     throw new AppError(
-      'Password must be at least 6 characters long',
+      "Password must be at least 6 characters long",
       StatusCodes.BAD_REQUEST,
-    )
+    );
   }
 
-  const userData: any = { ...payload }
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  console.log(otp);
+  const hashedOtp = await bcrypt.hash(otp, 10);
+  const otpExpires = new Date(Date.now() + 5 * 60 * 1000);
 
-  // Handle image upload if file is provided
-  if (file) {
-    const uploadResult = await uploadToCloudinary(file.path, 'users')
-    userData.image = {
-      url: uploadResult.secure_url,
-      publicId: uploadResult.public_id,
-    }
+  let result: IUser;
+
+  // Case 2: exists but not verified → update OTP
+  if (existingUser && !existingUser.isVerified) {
+    result = (await User.findOneAndUpdate(
+      { email: existingUser.email },
+      { otp: hashedOtp, otpExpires },
+      { new: true },
+    )) as IUser;
+  } else {
+    // Case 3: new user
+    result = await User.create({
+      ...payload,
+      otp: hashedOtp,
+      otpExpires,
+      isVerified: false,
+    });
   }
 
-  const result = await User.create(userData)
+  // Send email
+  await sendEmail({
+    to: result.email,
+    subject: "Verify your email",
+    html: verificationCodeTemplate(otp),
+  });
 
   // JWT payload
   const JwtToken = {
     userId: result._id,
     email: result.email,
     role: result.role,
-  }
+  };
 
   const accessToken = createToken(
     JwtToken,
     config.JWT_SECRET as string,
     config.JWT_EXPIRES_IN as string,
-  )
+  );
 
   const refreshToken = createToken(
     JwtToken,
     config.refreshTokenSecret as string,
     config.jwtRefreshTokenExpiresIn as string,
-  )
+  );
 
   return {
     accessToken,
@@ -67,68 +88,240 @@ const registerUser = async (payload: IUser, file?: any) => {
       lastName: result.lastName,
       email: result.email,
     },
+  };
+};
+
+const verifyEmail = async (email: string, payload: string) => {
+  const { otp }: any = payload;
+  if (!otp) throw new Error("OTP is required");
+
+  const existingUser = await User.findOne({ email });
+  if (!existingUser)
+    throw new AppError(
+      "No account found with the provided credentials.",
+      StatusCodes.NOT_FOUND,
+    );
+
+  if (!existingUser.otp || !existingUser.otpExpires) {
+    throw new AppError("OTP not requested or expired", StatusCodes.BAD_REQUEST);
   }
-}
+
+  if (existingUser.otpExpires < new Date()) {
+    throw new AppError("OTP has expired", StatusCodes.BAD_REQUEST);
+  }
+
+  if (existingUser.isVerified === true) {
+    throw new AppError("User already verified", StatusCodes.CONFLICT);
+  }
+
+  const isOtpMatched = await bcrypt.compare(otp.toString(), existingUser.otp);
+  if (!isOtpMatched) throw new AppError("Invalid OTP", StatusCodes.BAD_REQUEST);
+
+  const result = await User.findOneAndUpdate(
+    { email },
+    {
+      isVerified: true,
+      $unset: { otp: "", otpExpires: "" },
+    },
+    { new: true },
+  ).select("username email role");
+  return result;
+};
+
+const resendOtpCode = async (email: string) => {
+  const existingUser = await User.findOne({ email });
+  if (!existingUser)
+    throw new AppError(
+      "No account found with the provided credentials.",
+      StatusCodes.NOT_FOUND,
+    );
+
+  if (existingUser.isVerified === true) {
+    throw new AppError("User already verified", StatusCodes.CONFLICT);
+  }
+
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const hashedOtp = await bcrypt.hash(otp, 10);
+  const otpExpires = new Date(Date.now() + 5 * 60 * 1000);
+
+  const result = await User.findOneAndUpdate(
+    { email },
+    {
+      otp: hashedOtp,
+      otpExpires,
+    },
+    { new: true },
+  ).select("username email role");
+
+  await sendEmail({
+    to: existingUser.email,
+    subject: "Verify your email",
+    html: verificationCodeTemplate(otp),
+  });
+  return result;
+};
 
 const getAllUsers = async () => {
   const result = await User.find().select(
-    'username firstName lastName email role',
-  )
-  return result
-}
+    "-password -otp -otpExpires -resetPasswordOtp -resetPasswordOtpExpires",
+  );
+  return result;
+};
 
 const getAdminId = async () => {
-  const admin = await User.findOne({ role: 'admin' }).select('_id')
-  return admin
-}
+  const admin = await User.findOne({ role: "admin" }).select("_id");
+  return admin;
+};
 
 const getMyProfile = async (email: string) => {
-  const existingUser = await User.findOne({ email })
+  const existingUser = await User.findOne({ email });
   if (!existingUser)
     throw new AppError(
-      'No account found with the provided credentials.',
+      "No account found with the provided credentials.",
       StatusCodes.NOT_FOUND,
-    )
+    );
 
   const result = await User.findOne({ email }).select(
-    '-password -otp -otpExpires -resetPasswordOtp -resetPasswordOtpExpires',
-  )
+    "-password -otp -otpExpires -resetPasswordOtp -resetPasswordOtpExpires",
+  );
 
-  return result
-}
+  return result;
+};
 
 const updateUserProfile = async (payload: any, email: string, file: any) => {
-  const user = await User.findOne({ email }).select('image')
+  const user = await User.findOne({ email }).select("avatar");
   if (!user)
     throw new AppError(
-      'No account found with the provided credentials.',
+      "No account found with the provided credentials.",
       StatusCodes.NOT_FOUND,
-    )
+    );
 
   // eslint-disable-next-line prefer-const
-  let updateData: any = { ...payload }
-  let oldImagePublicId: string | undefined
+  let updateData: any = { ...payload };
+  let oldAvatarUrl: string | undefined;
 
   if (file) {
-    const uploadResult = await uploadToCloudinary(file.path, 'users')
-    oldImagePublicId = user.image?.publicId
+    const uploadResult = await uploadToCloudinary(file.path, "users");
+    oldAvatarUrl = user.avatar;
 
-    updateData.image = {
-      url: uploadResult.secure_url,
-      publicId: uploadResult.public_id,
-    }
+    updateData.avatar = uploadResult.secure_url;
   }
 
   const result = await User.findOneAndUpdate({ email }, updateData, {
     new: true,
-  }).select('-password')
+  }).select(
+    "-password -otp -otpExpires -resetPasswordOtp -resetPasswordOtpExpires",
+  );
 
-  if (file && oldImagePublicId) {
-    await deleteFromCloudinary(oldImagePublicId)
+  if (file && oldAvatarUrl) {
+    await deleteFromCloudinary(oldAvatarUrl);
   }
 
-  return result
-}
+  return result;
+};
+
+const addEmployee = async (payload: IUser) => {
+  const existingUser = await User.findOne({ email: payload.email });
+  if (existingUser) {
+    throw new AppError("Employee already exists", 409);
+  }
+
+  const defaultPassword = "123456";
+
+  const employee = await User.create({
+    ...payload,
+    password: payload.password ? payload.password : defaultPassword,
+    isVerified: true,
+    otp: null,
+    otpExpires: null,
+    role: "employer",
+  });
+
+  return employee;
+};
+
+const addEmployeeByCSV = async (filePath: string) => {
+  const rows: any[] = [];
+
+  // 1️⃣ Parse CSV
+  await new Promise<void>((resolve, reject) => {
+    fs.createReadStream(filePath)
+      .pipe(csv())
+      .on("data", (row) => rows.push(row))
+      .on("end", resolve)
+      .on("error", reject);
+  });
+
+  let success = 0;
+  let failed = 0;
+  const errors: any[] = [];
+
+  // 2️⃣ Process rows
+  for (const row of rows) {
+    try {
+      // 🔹 Email check
+      if (!row.email || row.email.trim() === "") {
+        throw new Error(
+          `Email missing for ${row.firstName || ""} ${row.lastName || ""}`,
+        );
+      }
+
+      // 🔹 Duplicate email check
+      const existingUser = await User.findOne({ email: row.email });
+      if (existingUser) {
+        throw new Error(`User already exists: ${row.email}`);
+      }
+
+      // 🔹 Default password if missing
+      if (!row.password || row.password.trim() === "") {
+        row.password = "123456"; // default password
+      }
+
+      await addEmployee(row); // reuse single employee logic
+      success++;
+    } catch (err: any) {
+      failed++;
+      errors.push({
+        email: row.email || `${row.firstName || ""} ${row.lastName || ""}`,
+        reason: err.message,
+      });
+    }
+  }
+
+  // 3️⃣ Optional: delete CSV after processing
+  fs.unlinkSync(filePath);
+
+  return {
+    total: rows.length,
+    success,
+    failed,
+    errors,
+  };
+};
+
+const deleteUser = async (id: string) => {
+  // 1️⃣ Find the user
+  const user = await User.findById(id);
+  if (!user) {
+    throw new AppError("User not found", StatusCodes.NOT_FOUND);
+  }
+
+  // 2️⃣ Check if user has any active orders (not delivered)
+  const activeOrdersCount = await Order.countDocuments({
+    user: user._id,
+    status: { $ne: "delivered" }, // status != delivered
+  });
+
+  if (activeOrdersCount > 0) {
+    throw new AppError(
+      "Cannot delete user. User has orders that are not delivered.",
+      StatusCodes.BAD_REQUEST,
+    );
+  }
+
+  // 3️⃣ Safe to delete user
+  await User.deleteOne({ _id: user._id });
+};
 
 const userService = {
   registerUser,
@@ -136,6 +329,9 @@ const userService = {
   getMyProfile,
   updateUserProfile,
   getAdminId,
-}
+  addEmployee,
+  addEmployeeByCSV,
+  deleteUser,
+};
 
-export default userService
+export default userService;

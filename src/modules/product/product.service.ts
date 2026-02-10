@@ -1,11 +1,12 @@
-import { StatusCodes } from 'http-status-codes'
-import AppError from '../../errors/AppError'
+import { StatusCodes } from "http-status-codes";
+import AppError from "../../errors/AppError";
 import {
-  uploadToCloudinary,
   deleteFromCloudinary,
-} from '../../utils/cloudinary'
-import { IProduct } from './product.interface'
-import { Product } from './product.model'
+  uploadToCloudinary,
+} from "../../utils/cloudinary";
+import { Order } from "../order/order.model";
+import { IProduct } from "./product.interface";
+import { Product } from "./product.model";
 
 // Create a new product
 const createProduct = async (
@@ -46,17 +47,17 @@ const createProduct = async (
 
 // Get product by ID
 const getProductById = async (id: string): Promise<IProduct | null> => {
-  const product = await Product.isProductExistById(id)
+  const product = await Product.isProductExistById(id);
   if (!product) {
-    throw new AppError('Product not found', StatusCodes.NOT_FOUND)
+    throw new AppError("Product not found", StatusCodes.NOT_FOUND);
   }
 
   const result = await Product.findById(id).populate(
-    'role',
-    'firstName lastName email',
-  )
-  return result
-}
+    "role",
+    "firstName lastName email",
+  );
+  return result;
+};
 
 // Update product by ID
 const updateProduct = async (
@@ -64,19 +65,28 @@ const updateProduct = async (
   payload: Partial<IProduct>,
   files?: Express.Multer.File[],
 ): Promise<IProduct | null> => {
-  const existingProduct = await Product.isProductExistById(id)
-  if (!existingProduct) {
-    throw new AppError('Product not found', StatusCodes.NOT_FOUND)
-  }
+  const existingProduct = await Product.findById(id);
+  if (!existingProduct) throw new AppError("Product not found", StatusCodes.NOT_FOUND);
 
-  // Check if title is being updated and already exists
-  if (payload.title && payload.title !== existingProduct.title) {
-    const titleExists = await Product.isProductExistByTitle(payload.title)
-    if (titleExists) {
-      throw new AppError(
-        'Product with this title already exists',
-        StatusCodes.CONFLICT,
-      )
+  if (files && files.length > 0) {
+    // 1. Upload new batch
+    const uploadResults = await Promise.all(
+      files.map((file) => uploadToCloudinary(file.path, "products"))
+    );
+
+    // 2. Set new image array in payload
+    payload.image = uploadResults.map((res) => ({
+      url: res.secure_url,
+      publicId: res.public_id,
+    }));
+
+    // 3. Cleanup: Trigger deletion of old images
+    if (existingProduct.image && existingProduct.image.length > 0) {
+      const deletePromises = existingProduct.image.map((img) =>
+        deleteFromCloudinary(img.publicId)
+      );
+      // Fire and forget, or use Promise.allSettled if you need logs
+      Promise.allSettled(deletePromises);
     }
   }
 
@@ -111,21 +121,21 @@ const updateProduct = async (
   const result = await Product.findByIdAndUpdate(id, payload, {
     new: true,
     runValidators: true,
-  }).populate('role', 'firstName lastName email')
+  });
 
-  return result
-}
+  return result;
+};
 
 // Delete product by ID
 const deleteProduct = async (id: string): Promise<IProduct | null> => {
-  const existingProduct = await Product.isProductExistById(id)
+  const existingProduct = await Product.isProductExistById(id);
   if (!existingProduct) {
-    throw new AppError('Product not found', StatusCodes.NOT_FOUND)
+    throw new AppError("Product not found", StatusCodes.NOT_FOUND);
   }
 
-  const result = await Product.findByIdAndDelete(id)
-  return result
-}
+  const result = await Product.findByIdAndDelete(id);
+  return result;
+};
 
 // Get products by type
 const getProductsByType = async (type: string): Promise<IProduct[]> => {
@@ -147,21 +157,6 @@ const getProductsByRole = async (roleId: string): Promise<IProduct[]> => {
   return result
 }
 
-// 2. Get All Products (With Optional Role Filtering & Query handling)
-// const getAllProducts = async (query: Record<string, unknown>, roleId?: string) => {
-//   const filter: any = { status: 'active' };
-
-//   // If a roleId is provided (from the user's profile), we filter the catalog
-//   if (roleId) {
-//     filter.targetRoles = { $in: [roleId] };
-//   }
-
-//   // Combine this with your existing search/pagination logic
-//   const result = await Product.find(filter)
-//     .populate('targetRoles', 'roleTitle images');
-
-//   return result;
-// };
 
 // product.service.ts
 const getAllProducts = async (
@@ -175,11 +170,59 @@ const getAllProducts = async (
     filter.$or = [
       { targetRoles: { $in: [roleId] } },
       { targetRoles: { $size: 0 } },
-    ]
+    ];
   }
 
-  return await Product.find(filter).populate('targetRoles')
-}
+  return await Product.find(filter).populate("targetRoles");
+};
+
+const getAllProductInventories = async (page = 1, limit = 10) => {
+  // Calculate skip
+  const skip = (page - 1) * limit;
+
+  // 1️⃣ Get paginated products
+  const products = await Product.find({ status: "active" })
+    .skip(skip)
+    .limit(limit)
+    .lean();
+
+  // 2️⃣ Get total product count
+  const totalProducts = await Product.countDocuments({ status: "active" });
+
+  // 3️⃣ Map each product with total ordered quantity
+  const productsWithOrderQuantity = await Promise.all(
+    products.map(async (product) => {
+      const orders = await Order.aggregate([
+        { $unwind: "$products" },
+        { $match: { "products.productId": product._id } },
+        {
+          $group: {
+            _id: "$products.productId",
+            totalOrderedQuantity: { $sum: "$products.quantity" },
+          },
+        },
+      ]);
+
+      const totalOrderedQuantity =
+        orders.length > 0 ? orders[0].totalOrderedQuantity : 0;
+
+      return {
+        ...product,
+        totalOrderedQuantity,
+      };
+    }),
+  );
+
+  return {
+    data: productsWithOrderQuantity,
+    meta: {
+      total: totalProducts,
+      page,
+      limit,
+      totalPage: Math.ceil(totalProducts / limit),
+    },
+  };
+};
 
 const productService = {
   createProduct,
@@ -189,6 +232,7 @@ const productService = {
   deleteProduct,
   getProductsByType,
   getProductsByRole,
-}
+  getAllProductInventories,
+};
 
-export default productService
+export default productService;
