@@ -75,34 +75,166 @@ const createOrder = async (payload: any) => {
 };
 
 // Get all orders with pagination
-const getAllOrders = async (query: Record<string, unknown>) => {
-  // 1. Set defaults for page and limit
-  const page = Number(query.page) || 1;
-  const limit = Number(query.limit) || 10;
-  const skip = (page - 1) * limit;
+// const getAllOrders = async (query: Record<string, unknown>) => {
+//   // 1. Set defaults for page and limit
+//   const page = Number(query.page) || 1;
+//   const limit = Number(query.limit) || 10;
+//   const skip = (page - 1) * limit;
 
-  // 2. Fetch paginated data
-  const result = await Order.find()
-    .sort({ createdAt: -1 }) // Newest orders first
-    .skip(skip)
-    .limit(limit)
-    .populate('user', 'firstName lastName email phoneNumber') // Updated from userId
-    .populate('products.productId', 'title price image');
+//   // 2. Fetch paginated data
+//   const result = await Order.find()
+//     .sort({ createdAt: -1 }) // Newest orders first
+//     .skip(skip)
+//     .limit(limit)
+//     .populate('user', 'firstName lastName email phoneNumber') // Updated from userId
+//     .populate('products.productId', 'title price image');
 
-  // 3. Count total documents for frontend math
-  const total = await Order.countDocuments();
-  const totalPage = Math.ceil(total / limit);
+//   // 3. Count total documents for frontend math
+//   const total = await Order.countDocuments();
+//   const totalPage = Math.ceil(total / limit);
+
+//   return {
+//     meta: {
+//       page,
+//       limit,
+//       total,
+//       totalPage,
+//     },
+//     data: result,
+//   };
+// };
+
+
+// const getAllOrders = async (query: Record<string, any>) => {
+//   const { searchTerm, sort, page, limit } = query;
+//   const skip = (page - 1) * limit;
+//   const sortOrder = sort === 'oldest' ? 1 : -1;
+
+//   const orderQuery: Record<string, any> = {};
+
+//   // ELITE: Handle Cross-Collection Search
+//   if (searchTerm) {
+//     const users = await User.find({
+//       $or: [
+//         { firstName: { $regex: searchTerm, $options: 'i' } },
+//         { lastName: { $regex: searchTerm, $options: 'i' } },
+//         { email: { $regex: searchTerm, $options: 'i' } },
+//       ],
+//     }).select('_id');
+
+//     const userIds = users.map((u) => u._id);
+
+//     // If no users match, return empty result immediately to save DB load
+//     if (userIds.length === 0) return { meta: { page, limit, total: 0, totalPage: 0 }, data: [] };
+
+//     orderQuery.user = { $in: userIds };
+//   }
+
+//   // Parallel Execution
+//   const [data, total] = await Promise.all([
+//     Order.find(orderQuery)
+//       .sort({ createdAt: sortOrder })
+//       .skip(skip)
+//       .limit(limit)
+//       .populate('role', 'roleTitle')
+//       .populate('user', 'firstName lastName email phoneNumber'),
+//     Order.countDocuments(orderQuery),
+//   ]);
+
+//   const totalPage = Math.ceil(total / limit);
+
+//   return {
+//     meta: { page, limit, total, totalPage },
+//     data,
+//   };
+// };
+
+
+
+
+const getAllOrders = async (query: Record<string, any>) => {
+  const { searchTerm, sort, page = 1, limit = 10 } = query;
+  const skip = (Number(page) - 1) * Number(limit);
+  const sortDirection = sort === 'role_desc' ? -1 : 1;
+
+  const pipeline: any[] = [
+    // 1. Join with Users
+    {
+      $lookup: {
+        from: 'users',
+        localField: 'user',
+        foreignField: '_id',
+        as: 'user',
+      },
+    },
+    { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } },
+
+    // 2. Join with Roles via user.selectedRole
+    {
+      $lookup: {
+        from: 'roles',
+        localField: 'user.selectedRole',
+        foreignField: '_id',
+        as: 'selectedRoleDetails',
+      },
+    },
+    { $unwind: { path: '$selectedRoleDetails', preserveNullAndEmptyArrays: true } },
+
+    // 3. Search logic (User Fields + Order Fields)
+    {
+      $match: searchTerm
+        ? {
+          $or: [
+            { 'user.firstName': { $regex: searchTerm, $options: 'i' } },
+            { 'user.email': { $regex: searchTerm, $options: 'i' } },
+            { 'region': { $regex: searchTerm, $options: 'i' } },
+            { 'selectedRoleDetails.roleTitle': { $regex: searchTerm, $options: 'i' } },
+          ],
+        }
+        : {},
+    },
+
+    // 4. Facet for Pagination and Metadata
+    {
+      $facet: {
+        meta: [{ $count: 'total' }],
+        data: [
+          // Sorting
+          {
+            $sort: sort === 'role'
+              ? { 'selectedRoleDetails.roleTitle': sortDirection }
+              : { createdAt: -1 },
+          },
+          { $skip: skip },
+          { $limit: Number(limit) },
+          // 5. SECURITY: Project out sensitive fields
+          {
+            $project: {
+              'user.password': 0,
+              'user.otp': 0,
+              'user.resetPasswordOtp': 0,
+              'user.resetPasswordOtpExpires': 0,
+            },
+          },
+        ],
+      },
+    },
+  ];
+
+  const result = await Order.aggregate(pipeline);
+  const total = result[0].meta[0]?.total || 0;
 
   return {
     meta: {
-      page,
-      limit,
+      page: Number(page),
+      limit: Number(limit),
       total,
-      totalPage,
+      totalPage: Math.ceil(total / Number(limit)),
     },
-    data: result,
+    data: result[0].data,
   };
-};
+}
+
 
 // Get order by ID
 const getOrderById = async (id: string): Promise<IOrder | null> => {
@@ -179,6 +311,8 @@ const getOrderForUserIDFromDB = async (userId: string): Promise<IOrder[]> => {
 
   return history;
 };
+
+
 
 
 

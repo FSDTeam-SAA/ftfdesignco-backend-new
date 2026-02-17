@@ -18,7 +18,7 @@ const addToCart = catchAsync(async (req, res) => {
 // Get cart by user ID
 const getCartByUserId = catchAsync(async (req, res) => {
   const { userId } = req.params
-  const result = await addToCartService.getCartByUserId(userId)
+  const result = await addToCartService.getCartByUserId(userId as string)
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -31,7 +31,7 @@ const getCartByUserId = catchAsync(async (req, res) => {
 // Update cart
 const updateCart = catchAsync(async (req, res) => {
   const { id } = req.params
-  const result = await addToCartService.updateCart(id, req.body)
+  const result = await addToCartService.updateCart(id as string, req.body)
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -44,7 +44,7 @@ const updateCart = catchAsync(async (req, res) => {
 // Remove product from cart
 const removeFromCart = catchAsync(async (req, res) => {
   const { id } = req.params
-  const result = await addToCartService.removeFromCart(id)
+  const result = await addToCartService.removeFromCart(id as string)
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -57,7 +57,7 @@ const removeFromCart = catchAsync(async (req, res) => {
 // Clear cart
 const clearCart = catchAsync(async (req, res) => {
   const { userId } = req.params
-  const result = await addToCartService.clearCart(userId)
+  const result = await addToCartService.clearCart(userId as string)
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,

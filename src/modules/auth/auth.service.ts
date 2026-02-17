@@ -18,9 +18,6 @@ const login = async (payload: { email: string; password: string }) => {
       StatusCodes.NOT_FOUND,
     )
 
-  if (user.isVerified === false)
-    throw new AppError('Please verify your email', StatusCodes.UNAUTHORIZED)
-
   const isPasswordValid = await User.isPasswordMatch(password, user.password)
   if (!isPasswordValid)
     throw new AppError('Invalid password', StatusCodes.UNAUTHORIZED)
@@ -52,7 +49,7 @@ const login = async (payload: { email: string; password: string }) => {
       role: user.role,
       firstName: user.firstName,
       lastName: user.lastName,
-      avatar: user.avatar,
+      image: user.image,
       phoneNumber: user.phoneNumber,
       homeAddress: user.homeAddress,
       city: user.city,
@@ -71,7 +68,7 @@ const refreshToken = async (token: string) => {
     if (!decodedToken) {
       throw new AppError('Invalid token', StatusCodes.UNAUTHORIZED)
     }
-  } catch (error) {
+  } catch {
     throw new AppError('You are not authorized', StatusCodes.UNAUTHORIZED)
   }
 
@@ -198,7 +195,7 @@ const verifyOtp = async (email: string, otp: string) => {
       StatusCodes.BAD_REQUEST,
     )
   }
-// test
+  // test
   const isOtpMatched = await bcrypt.compare(
     otp.toString(),
     isExistingUser.resetPasswordOtp,

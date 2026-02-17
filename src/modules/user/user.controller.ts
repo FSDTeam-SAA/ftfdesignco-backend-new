@@ -11,7 +11,7 @@ const registerUser = catchAsync(async (req, res) => {
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: "Account created successfully. Please verify your email.",
+    message: 'Account created successfully.',
     data: {
       accessToken,
       user,
@@ -66,54 +66,54 @@ const resendOtpCode = catchAsync(async (req, res) => {
 });
 
 const getAllUsers = catchAsync(async (req, res) => {
-  const result = await userService.getAllUsers();
+  const result = await userService.getAllUsers()
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: "Users retrieved successfully.",
+    message: 'Users retrieved successfully.',
     data: result,
-  });
-});
+  })
+})
 
 const getAdminId = catchAsync(async (req, res) => {
-  const result = await userService.getAdminId();
+  const result = await userService.getAdminId()
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: "Admin ID fetched successfully",
+    message: 'Admin ID fetched successfully',
     data: result,
-  });
-});
+  })
+})
 
 const getMyProfile = catchAsync(async (req, res) => {
-  const { email } = req.user;
+  const { email } = req.user
 
-  const result = await userService.getMyProfile(email);
+  const result = await userService.getMyProfile(email)
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: "Your profile has been retrieved successfully.",
+    message: 'Your profile has been retrieved successfully.',
     data: result,
-  });
-});
+  })
+})
 
 const updateUserProfile = catchAsync(async (req, res) => {
-  const { email } = req.user;
-  const result = await userService.updateUserProfile(req.body, email, req.file);
+  const { email } = req.user
+  const result = await userService.updateUserProfile(req.body, email, req.file)
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: "Your profile has been updated successfully.",
+    message: 'Your profile has been updated successfully.',
     data: result,
-  });
-});
+  })
+})
 
 const deleteUser = catchAsync(async (req, res) => {
   const { id } = req.params;
-  const result = await userService.deleteUser(id);
+  const result = await userService.deleteUser(id as string);
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -125,14 +125,14 @@ const deleteUser = catchAsync(async (req, res) => {
 
 const userController = {
   registerUser,
-  verifyEmail,
-  resendOtpCode,
   getAllUsers,
   getMyProfile,
   updateUserProfile,
   getAdminId,
   addEmployee,
   deleteUser,
+  verifyEmail,
+  resendOtpCode,
 };
 
-export default userController;
+export default userController

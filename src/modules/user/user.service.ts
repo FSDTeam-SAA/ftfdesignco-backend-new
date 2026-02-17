@@ -325,8 +325,6 @@ const deleteUser = async (id: string) => {
 
 const userService = {
   registerUser,
-  verifyEmail,
-  resendOtpCode,
   getAllUsers,
   getMyProfile,
   updateUserProfile,
@@ -334,6 +332,8 @@ const userService = {
   addEmployee,
   addEmployeeByCSV,
   deleteUser,
+  resendOtpCode,
+  verifyEmail,
 };
 
 export default userService;

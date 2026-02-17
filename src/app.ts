@@ -21,7 +21,7 @@ applySecurity(app);
 app.use("/api/v1", router);
 
 app.get("/", (req, res) => {
-    res.send("Hello World!");
+  res.send("Hello World!");
 });
 
 app.use(notFound);
