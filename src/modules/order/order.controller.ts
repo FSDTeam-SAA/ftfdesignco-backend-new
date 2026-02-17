@@ -18,18 +18,34 @@ const createOrder = catchAsync(async (req, res) => {
 
 // Get all orders
 
+// const getAllOrders = catchAsync(async (req, res) => {
+//   // Passing req.query allows the service to see ?page= and ?limit=
+//   const result = await orderService.getAllOrders(req.query);
+
+//   sendResponse(res, {
+//     statusCode: StatusCodes.OK,
+//     success: true,
+//     message: "Orders retrieved successfully",
+//     meta: result.meta, // Include pagination info here
+//     data: result.data,
+//   });
+// });
+
+
 const getAllOrders = catchAsync(async (req, res) => {
-  // Passing req.query allows the service to see ?page= and ?limit=
+  // ELITE: Use req.validated.query
   const result = await orderService.getAllOrders(req.query);
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
     message: "Orders retrieved successfully",
-    meta: result.meta, // Include pagination info here
+    meta: result.meta,
     data: result.data,
   });
 });
+
+
 
 // Get order by ID
 const getOrderById = catchAsync(async (req, res) => {
