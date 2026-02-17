@@ -13,4 +13,17 @@ export interface IAddToCart {
   updatedAt?: Date
 }
 
+interface IPopulatedProduct {
+  _id: string;
+  title: string;
+  price: number;
+  images: { url: string }[];
+}
+
+interface ICartItem {
+  productId: IPopulatedProduct;
+  quantity: number;
+  size: string;
+}
+
 export type addToCartModel = Model<IAddToCart> 
