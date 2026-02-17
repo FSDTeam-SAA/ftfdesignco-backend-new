@@ -175,66 +175,154 @@ const getAllProducts = async (
   query: Record<string, unknown>,
   roleId?: string,
 ) => {
-  const filter: any = { status: 'active' }
+  const { searchTerm, price, availableQuantity } = query;
+  
+  // 1. Initialize filters with active status
+  const filter: any = { $and: [{ status: 'active' }] };
 
+  // 2. PRESERVE LOGIC: Role-Based Filtering
   if (roleId) {
-    // Show products that match the role OR have no specific roles assigned (Global)
-    filter.$or = [
-      { targetRoles: { $in: [roleId] } },
-      { targetRoles: { $size: 0 } },
-    ]
+    filter.$and.push({
+      $or: [
+        { targetRoles: { $in: [roleId] } },
+        { targetRoles: { $size: 0 } },
+      ],
+    });
   }
 
-  return await Product.find(filter).populate('targetRoles')
-}
+  // 3. ADD SEARCH: Title (Partial Match)
+  if (searchTerm) {
+    filter.$and.push({
+      title: { $regex: searchTerm, $options: 'i' }
+    });
+  }
 
-const getAllProductInventories = async (page = 1, limit = 10) => {
-  // Calculate skip
-  const skip = (page - 1) * limit
+  // 4. ADD SEARCH: Price (Exact Match)
+  if (price) {
+    filter.$and.push({ price: Number(price) });
+  }
 
-  // 1️⃣ Get paginated products
-  const products = await Product.find({ status: 'active' })
-    .skip(skip)
-    .limit(limit)
-    .lean()
+  // 5. ADD SEARCH: Available Quantity (Exact Match)
+  if (availableQuantity) {
+    filter.$and.push({ availableQuantity: Number(availableQuantity) });
+  }
 
-  // 2️⃣ Get total product count
-  const totalProducts = await Product.countDocuments({ status: 'active' })
+  return await Product.find(filter).populate('targetRoles');
+};
 
-  // 3️⃣ Map each product with total ordered quantity
-  const productsWithOrderQuantity = await Promise.all(
-    products.map(async (product) => {
-      const orders = await Order.aggregate([
-        { $unwind: '$products' },
-        { $match: { 'products.productId': product._id } },
-        {
-          $group: {
-            _id: '$products.productId',
-            totalOrderedQuantity: { $sum: '$products.quantity' },
-          },
-        },
-      ])
 
-      const totalOrderedQuantity =
-        orders.length > 0 ? orders[0].totalOrderedQuantity : 0
+// const getAllProductInventories = async (page = 1, limit = 10) => {
+//   // Calculate skip
+//   const skip = (page - 1) * limit
 
-      return {
-        ...product,
-        totalOrderedQuantity,
+//   // 1️⃣ Get paginated products
+//   const products = await Product.find({ status: 'active' })
+//     .skip(skip)
+//     .limit(limit)
+//     .lean()
+
+//   // 2️⃣ Get total product count
+//   const totalProducts = await Product.countDocuments({ status: 'active' })
+
+//   // 3️⃣ Map each product with total ordered quantity
+//   const productsWithOrderQuantity = await Promise.all(
+//     products.map(async (product) => {
+//       const orders = await Order.aggregate([
+//         { $unwind: '$products' },
+//         { $match: { 'products.productId': product._id } },
+//         {
+//           $group: {
+//             _id: '$products.productId',
+//             totalOrderedQuantity: { $sum: '$products.quantity' },
+//           },
+//         },
+//       ])
+
+//       const totalOrderedQuantity =
+//         orders.length > 0 ? orders[0].totalOrderedQuantity : 0
+
+//       return {
+//         ...product,
+//         totalOrderedQuantity,
+//       }
+//     }),
+//   )
+
+//   return {
+//     data: productsWithOrderQuantity,
+//     meta: {
+//       total: totalProducts,
+//       page,
+//       limit,
+//       totalPage: Math.ceil(totalProducts / limit),
+//     },
+//   }
+// }
+
+
+const getAllProductInventories = async (
+  page = 1,
+  limit = 10,
+  searchTerm = ''
+) => {
+  const skip = (page - 1) * limit;
+
+  // 1. Build dynamic search filter
+  const query: any = { status: 'active' };
+  if (searchTerm) {
+    query.$or = [
+      { title: { $regex: searchTerm, $options: 'i' } },
+      { type: { $regex: searchTerm, $options: 'i' } },
+    ];
+  }
+
+  // 2. Single Aggregation Pipeline (No Maps/Loops)
+  const result = await Product.aggregate([
+    { $match: query },
+    {
+      $lookup: {
+        from: 'orders', // Ensure this matches your Order collection name
+        let: { productId: '$_id' },
+        pipeline: [
+          { $unwind: '$products' },
+          { $match: { $expr: { $eq: ['$products.productId', '$$productId'] } } },
+          { $group: { _id: null, total: { $sum: '$products.quantity' } } }
+        ],
+        as: 'orderStats'
       }
-    }),
-  )
+    },
+    {
+      $addFields: {
+        totalOrderedQuantity: { $ifNull: [{ $arrayElemAt: ['$orderStats.total', 0] }, 0] }
+      }
+    },
+    { $project: { orderStats: 0 } },
+    {
+      $facet: {
+        data: [{ $skip: skip }, { $limit: limit }],
+        totalCount: [{ $count: 'count' }]
+      }
+    }
+  ]);
+
+  const data = result[0]?.data || [];
+  const totalProducts = result[0]?.totalCount[0]?.count || 0;
 
   return {
-    data: productsWithOrderQuantity,
+    data,
     meta: {
       total: totalProducts,
       page,
       limit,
       totalPage: Math.ceil(totalProducts / limit),
     },
-  }
-}
+  };
+};
+
+
+
+
+
 
 const getRigionProducts = async (
   page: number,
