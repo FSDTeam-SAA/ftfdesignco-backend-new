@@ -2,54 +2,58 @@ import { StatusCodes } from 'http-status-codes'
 import AppError from '../../errors/AppError'
 import { IOrder } from './order.interface'
 import { Order } from './order.model'
-import { User } from '../user/user.model';
-import mongoose from 'mongoose';
-import { Product } from '../product/product.model';
+import { User } from '../user/user.model'
+import mongoose from 'mongoose'
+import { Product } from '../product/product.model'
 
 // Create a new order
 const createOrder = async (payload: any) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
+  const session = await mongoose.startSession()
+  session.startTransaction()
 
   try {
-    const user = await User.findById(payload.user).session(session);
-    if (!user) throw new AppError('User not found', StatusCodes.NOT_FOUND);
+    const user = await User.findById(payload.user).session(session)
+    if (!user) throw new AppError('User not found', StatusCodes.NOT_FOUND)
 
-    let calculatedTotalAmount = 0;
-    const productsToUpdate = [];
+    let calculatedTotalAmount = 0
+    const productsToUpdate = []
 
     // 1. Calculate Real Price and Check Stock
     for (const item of payload.products) {
-      const product = await Product.findById(item.productId).session(session);
-      if (!product) throw new AppError('Product not found', StatusCodes.NOT_FOUND);
+      const product = await Product.findById(item.productId).session(session)
+      if (!product)
+        throw new AppError('Product not found', StatusCodes.NOT_FOUND)
 
       if (product.availableQuantity < item.quantity) {
-        throw new AppError(`Insufficient stock for ${product.title}`, StatusCodes.CONFLICT);
+        throw new AppError(
+          `Insufficient stock for ${product.title}`,
+          StatusCodes.CONFLICT,
+        )
       }
 
-      calculatedTotalAmount += product.price * item.quantity;
-      product.availableQuantity -= item.quantity;
-      productsToUpdate.push(product);
+      calculatedTotalAmount += product.price * item.quantity
+      product.availableQuantity -= item.quantity
+      productsToUpdate.push(product)
     }
 
     // 2. DYNAMIC STATUS & BALANCE LOGIC
-    let orderStatus = 'pending';
-    let finalRemainingBalance = user.balance;
+    let orderStatus = 'pending'
+    let finalRemainingBalance = user.balance
 
     if (user.balance >= calculatedTotalAmount) {
       // User has enough money -> Pay immediately
-      user.balance -= calculatedTotalAmount;
-      finalRemainingBalance = user.balance;
-      orderStatus = 'paid';
-      await user.save({ session });
+      user.balance -= calculatedTotalAmount
+      finalRemainingBalance = user.balance
+      orderStatus = 'paid'
+      await user.save({ session })
     } else {
       // Insufficient balance -> Order stays 'pending' (User pays later/Admin collects)
-      orderStatus = 'pending';
+      orderStatus = 'pending'
     }
 
     // 3. Save Products (Stock is reserved regardless of payment status)
     for (const p of productsToUpdate) {
-      await p.save({ session });
+      await p.save({ session })
     }
 
     // 4. Create Order Record
@@ -58,21 +62,20 @@ const createOrder = async (payload: any) => {
       totalAmount: calculatedTotalAmount,
       remainingBalance: finalRemainingBalance,
       status: orderStatus, // Automatically set to 'paid' or 'pending'
-    };
+    }
 
-    const [newOrder] = await Order.create([orderData], { session });
+    const [newOrder] = await Order.create([orderData], { session })
 
-    await session.commitTransaction();
+    await session.commitTransaction()
     // return newOrder;
-    return await newOrder.populate('user', 'firstName lastName email');
-
+    return await newOrder.populate('user', 'firstName lastName email')
   } catch (error) {
-    await session.abortTransaction();
-    throw error;
+    await session.abortTransaction()
+    throw error
   } finally {
-    session.endSession();
+    session.endSession()
   }
-};
+}
 
 // Get all orders with pagination
 // const getAllOrders = async (query: Record<string, unknown>) => {
@@ -103,7 +106,6 @@ const createOrder = async (payload: any) => {
 //     data: result,
 //   };
 // };
-
 
 // const getAllOrders = async (query: Record<string, any>) => {
 //   const { searchTerm, sort, page, limit } = query;
@@ -149,13 +151,10 @@ const createOrder = async (payload: any) => {
 //   };
 // };
 
-
-
-
 const getAllOrders = async (query: Record<string, any>) => {
-  const { searchTerm, sort, page = 1, limit = 10 } = query;
-  const skip = (Number(page) - 1) * Number(limit);
-  const sortDirection = sort === 'role_desc' ? -1 : 1;
+  const { searchTerm, sort, page = 1, limit = 10, region } = query
+  const skip = (Number(page) - 1) * Number(limit)
+  const sortDirection = sort === 'role_desc' ? -1 : 1
 
   const pipeline: any[] = [
     // 1. Join with Users
@@ -178,19 +177,40 @@ const getAllOrders = async (query: Record<string, any>) => {
         as: 'selectedRoleDetails',
       },
     },
-    { $unwind: { path: '$selectedRoleDetails', preserveNullAndEmptyArrays: true } },
+    {
+      $unwind: {
+        path: '$selectedRoleDetails',
+        preserveNullAndEmptyArrays: true,
+      },
+    },
 
-    // 3. Search logic (User Fields + Order Fields)
+    // 3. Filter by region if provided
+    ...(region
+      ? [
+          {
+            $match: {
+              region: { $regex: region, $options: 'i' },
+            },
+          },
+        ]
+      : []),
+
+    // 4. Search logic (User Fields + Order Fields)
     {
       $match: searchTerm
         ? {
-          $or: [
-            { 'user.firstName': { $regex: searchTerm, $options: 'i' } },
-            { 'user.email': { $regex: searchTerm, $options: 'i' } },
-            { 'region': { $regex: searchTerm, $options: 'i' } },
-            { 'selectedRoleDetails.roleTitle': { $regex: searchTerm, $options: 'i' } },
-          ],
-        }
+            $or: [
+              { 'user.firstName': { $regex: searchTerm, $options: 'i' } },
+              { 'user.email': { $regex: searchTerm, $options: 'i' } },
+              { region: { $regex: searchTerm, $options: 'i' } },
+              {
+                'selectedRoleDetails.roleTitle': {
+                  $regex: searchTerm,
+                  $options: 'i',
+                },
+              },
+            ],
+          }
         : {},
     },
 
@@ -201,9 +221,10 @@ const getAllOrders = async (query: Record<string, any>) => {
         data: [
           // Sorting
           {
-            $sort: sort === 'role'
-              ? { 'selectedRoleDetails.roleTitle': sortDirection }
-              : { createdAt: -1 },
+            $sort:
+              sort === 'role'
+                ? { 'selectedRoleDetails.roleTitle': sortDirection }
+                : { createdAt: -1 },
           },
           { $skip: skip },
           { $limit: Number(limit) },
@@ -219,10 +240,10 @@ const getAllOrders = async (query: Record<string, any>) => {
         ],
       },
     },
-  ];
+  ]
 
-  const result = await Order.aggregate(pipeline);
-  const total = result[0].meta[0]?.total || 0;
+  const result = await Order.aggregate(pipeline)
+  const total = result[0].meta[0]?.total || 0
 
   return {
     meta: {
@@ -232,21 +253,20 @@ const getAllOrders = async (query: Record<string, any>) => {
       totalPage: Math.ceil(total / Number(limit)),
     },
     data: result[0].data,
-  };
+  }
 }
-
 
 // Get order by ID
 const getOrderById = async (id: string): Promise<IOrder | null> => {
   const result = await Order.findById(id)
     .populate('user', 'firstName lastName email phoneNumber region homeAddress') // Changed from userId to user
-    .populate('products.productId', 'title price image');
+    .populate('products.productId', 'title price image')
 
   if (!result) {
-    throw new AppError('Order not found', StatusCodes.NOT_FOUND);
+    throw new AppError('Order not found', StatusCodes.NOT_FOUND)
   }
-  return result;
-};
+  return result
+}
 
 // Get orders by user ID
 const getOrdersByUserId = async (userId: string): Promise<IOrder[]> => {
@@ -254,10 +274,10 @@ const getOrdersByUserId = async (userId: string): Promise<IOrder[]> => {
   const result = await Order.find({ user: userId })
     .sort({ createdAt: -1 })
     .populate('user', 'firstName lastName email region')
-    .populate('products.productId', 'title price');
+    .populate('products.productId', 'title price')
 
-  return result;
-};
+  return result
+}
 
 // Update order status
 const updateOrderStatus = async (
@@ -287,35 +307,29 @@ const deleteOrder = async (id: string): Promise<IOrder | null> => {
 }
 
 const getMyPaymentHistoryFromDB = async (userId: string): Promise<IOrder[]> => {
-  console.log("Searching history for User ID:", userId);
+  console.log('Searching history for User ID:', userId)
 
   const history = await Order.find({
     user: userId,
-    status: 'paid' // Only show successful payments
+    status: 'paid', // Only show successful payments
   })
     .sort({ createdAt: -1 }) // Newest first
-    .populate('products.productId', 'title price'); // Show product details
+    .populate('products.productId', 'title price') // Show product details
 
-  return history;
-};
-
+  return history
+}
 
 const getOrderForUserIDFromDB = async (userId: string): Promise<IOrder[]> => {
-  console.log("Searching history for User ID:", userId);
+  console.log('Searching history for User ID:', userId)
 
   const history = await Order.find({
     user: userId,
   })
     .sort({ createdAt: -1 }) // Newest first
-    .populate('products.productId', 'title price'); // Show product details
+    .populate('products.productId', 'title price') // Show product details
 
-  return history;
-};
-
-
-
-
-
+  return history
+}
 
 const orderService = {
   createOrder,
@@ -325,8 +339,7 @@ const orderService = {
   updateOrderStatus,
   deleteOrder,
   getMyPaymentHistoryFromDB,
-  getOrderForUserIDFromDB
-
+  getOrderForUserIDFromDB,
 }
 
 export default orderService
