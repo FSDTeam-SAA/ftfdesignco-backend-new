@@ -188,37 +188,81 @@ const getMyProfile = async (email: string) => {
   return result;
 };
 
-const updateUserProfile = async (payload: any, email: string, file: any) => {
-  const user = await User.findOne({ email }).select("avatar");
-  if (!user)
-    throw new AppError(
-      "No account found with the provided credentials.",
-      StatusCodes.NOT_FOUND,
-    );
 
-  // eslint-disable-next-line prefer-const
-  let updateData: any = { ...payload };
-  let oldAvatarUrl: string | undefined;
+// const updateUserProfile = async (payload: any, email: string, file: any) => {
+//   const user = await User.findOne({ email }).select("avatar");
+//   if (!user)
+//     throw new AppError(
+//       "No account found with the provided credentials.",
+//       StatusCodes.NOT_FOUND,
+//     );
 
-  if (file) {
-    const uploadResult = await uploadToCloudinary(file.path, "users");
-    oldAvatarUrl = user.avatar;
+//   // eslint-disable-next-line prefer-const
+//   let updateData: any = { ...payload };
+//   let oldAvatarUrl: string | undefined;
 
-    updateData.avatar = uploadResult.secure_url;
+//   if (file) {
+//     const uploadResult = await uploadToCloudinary(file.path, "users");
+//     oldAvatarUrl = user.avatar;
+
+//     updateData.avatar = uploadResult.secure_url;
+//   }
+
+//   const result = await User.findOneAndUpdate({ email }, updateData, {
+//     new: true,
+//   }).select(
+//     "-password -otp -otpExpires -resetPasswordOtp -resetPasswordOtpExpires",
+//   );
+
+//   if (file && oldAvatarUrl) {
+//     await deleteFromCloudinary(oldAvatarUrl);
+//   }
+
+//   return result;
+// };
+
+
+const updateUserProfile = async (id: string, payload: any, file: any) => {
+  const user = await User.findById(id).select("avatar");
+  if (!user) throw new AppError("User not found", StatusCodes.NOT_FOUND);
+
+  let newAvatarUrl: string | undefined;
+
+  try {
+    if (file) {
+      // 1. Upload new image
+      const uploadResult = await uploadToCloudinary(file.path, "users");
+      newAvatarUrl = uploadResult.secure_url;
+      payload.avatar = newAvatarUrl;
+    }
+
+    // 2. Database Update
+    const result = await User.findByIdAndUpdate(id, payload, {
+      new: true,
+      runValidators: true,
+    }).select("-password -otp -otpExpires");
+
+    // 3. Success: Cleanup OLD avatar if it exists
+    if (file && user.avatar) {
+      const publicId = user.avatar.split('/').pop()?.split('.')[0];
+      if (publicId) await deleteFromCloudinary(`users/${publicId}`);
+    }
+
+    return result;
+  } catch (error) {
+    // 4. Rollback: If DB update fails, delete the NEW image we just uploaded
+    if (newAvatarUrl) {
+      const newPublicId = newAvatarUrl.split('/').pop()?.split('.')[0];
+      if (newPublicId) await deleteFromCloudinary(`users/${newPublicId}`);
+    }
+    throw error;
   }
-
-  const result = await User.findOneAndUpdate({ email }, updateData, {
-    new: true,
-  }).select(
-    "-password -otp -otpExpires -resetPasswordOtp -resetPasswordOtpExpires",
-  );
-
-  if (file && oldAvatarUrl) {
-    await deleteFromCloudinary(oldAvatarUrl);
-  }
-
-  return result;
 };
+
+
+
+
+
 
 const addEmployee = async (payload: IUser) => {
   const existingUser = await User.findOne({ email: payload.email });

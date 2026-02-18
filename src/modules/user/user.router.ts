@@ -33,18 +33,21 @@ router.post(
 );
 
 router.get("/all-users", userController.getAllUsers);
+
 router.get(
   "/my-profile",
   auth(USER_ROLE.OWNER, USER_ROLE.EMPLOYER),
   userController.getMyProfile,
 );
 
+
 router.put(
-  "/update-profile",
+  "/update-profile/:userID",
   upload.single("image"),
   auth(USER_ROLE.OWNER, USER_ROLE.EMPLOYER),
   userController.updateUserProfile,
 );
+
 
 router.get(
   "/admin_id",

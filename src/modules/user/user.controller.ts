@@ -3,6 +3,7 @@ import AppError from "../../errors/AppError";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import userService from "./user.service";
+import { USER_ROLE } from "./user.constant";
 
 const registerUser = catchAsync(async (req, res) => {
   const result = await userService.registerUser(req.body);
@@ -18,6 +19,7 @@ const registerUser = catchAsync(async (req, res) => {
     },
   });
 });
+
 
 const addEmployee = catchAsync(async (req, res) => {
   let result;
@@ -40,6 +42,8 @@ const addEmployee = catchAsync(async (req, res) => {
     data: result,
   });
 });
+
+
 
 const verifyEmail = catchAsync(async (req, res) => {
   const { email } = req.user;
@@ -99,17 +103,53 @@ const getMyProfile = catchAsync(async (req, res) => {
   })
 })
 
+// const updateUserProfile = catchAsync(async (req, res) => {
+//   const { email } = req.user
+//   const result = await userService.updateUserProfile(req.body, email, req.file)
+
+//   sendResponse(res, {
+//     statusCode: StatusCodes.OK,
+//     success: true,
+//     message: 'Your profile has been updated successfully.',
+//     data: result,
+//   })
+// })
+
+
+
+
 const updateUserProfile = catchAsync(async (req, res) => {
-  const { email } = req.user
-  const result = await userService.updateUserProfile(req.body, email, req.file)
+  const { userID } = req.params;
+  const requestor = req.user; // Injected by auth middleware
+
+  // 1. Authorization: Only OWNER or the profile owner (EMPLOYER) can update
+  const isOwner = requestor.role === USER_ROLE.OWNER;
+  const isSelf = requestor.id === userID;
+
+  if (!isOwner && !isSelf) {
+    throw new AppError("Forbidden: You can only update your own profile.", StatusCodes.FORBIDDEN);
+  }
+
+  // 2. Data Protection: Prevent EMPLOYERS from changing their own roles/status
+  const updatePayload = { ...req.body };
+  if (!isOwner) {
+    delete updatePayload.role;
+    delete updatePayload.status;
+  }
+
+  const result = await userService.updateUserProfile(userID as string, updatePayload, req.file);
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: 'Your profile has been updated successfully.',
+    message: 'Profile updated successfully.',
     data: result,
-  })
-})
+  });
+});
+
+
+
+
 
 const deleteUser = catchAsync(async (req, res) => {
   const { id } = req.params;
