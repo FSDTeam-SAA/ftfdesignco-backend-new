@@ -183,34 +183,17 @@ const getAllProducts = async (
       {
         $lookup: {
           from: 'roles',
-          localField: 'targetRoles',
+          localField: 'role',
           foreignField: '_id',
-          as: 'targetRolesData',
+          as: 'roleData',
         },
       },
       {
         $match: {
-          $or: [
-            {
-              'targetRolesData.roleTitle': { $regex: roleTitle, $options: 'i' },
-            },
-            { targetRoles: { $size: 0 } },
-          ],
+          'roleData.roleTitle': { $regex: roleTitle, $options: 'i' },
         },
       },
     ]
-
-    // Add role-based filtering if roleId exists
-    if (roleId) {
-      pipeline.push({
-        $match: {
-          $or: [
-            { targetRoles: { $in: [roleId] } },
-            { targetRoles: { $size: 0 } },
-          ],
-        },
-      })
-    }
 
     // Add other filters
     if (searchTerm) {
@@ -229,16 +212,16 @@ const getAllProducts = async (
       })
     }
 
-    // Replace targetRoles with populated data
+    // Replace role with populated data
     pipeline.push({
       $addFields: {
-        targetRoles: '$targetRolesData',
+        role: { $arrayElemAt: ['$roleData', 0] },
       },
     })
 
     pipeline.push({
       $project: {
-        targetRolesData: 0,
+        roleData: 0,
       },
     })
 
@@ -247,13 +230,6 @@ const getAllProducts = async (
 
   // Original logic when roleTitle is not provided
   const filter: any = { $and: [{ status: 'active' }] }
-
-  // 2. PRESERVE LOGIC: Role-Based Filtering
-  if (roleId) {
-    filter.$and.push({
-      $or: [{ targetRoles: { $in: [roleId] } }, { targetRoles: { $size: 0 } }],
-    })
-  }
 
   // 3. ADD SEARCH: Title (Partial Match)
   if (searchTerm) {
@@ -272,7 +248,7 @@ const getAllProducts = async (
     filter.$and.push({ availableQuantity: Number(availableQuantity) })
   }
 
-  return await Product.find(filter).populate('targetRoles')
+  return await Product.find(filter).populate('role', 'roleTitle')
 }
 
 const getAllProductInventories = async (
