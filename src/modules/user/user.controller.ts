@@ -160,6 +160,23 @@ const deleteUser = catchAsync(async (req, res) => {
   })
 })
 
+const updateUserBalance = catchAsync(async (req, res) => {
+  const { balance } = req.body
+
+  if (balance === undefined || balance === null) {
+    throw new AppError('Balance is required', StatusCodes.BAD_REQUEST)
+  }
+
+  const result = await userService.updateUserBalance(balance)
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'All users balance updated successfully.',
+    data: result,
+  })
+})
+
 const userController = {
   registerUser,
   getAllUsers,
@@ -170,6 +187,7 @@ const userController = {
   deleteUser,
   verifyEmail,
   resendOtpCode,
+  updateUserBalance,
 }
 
 export default userController

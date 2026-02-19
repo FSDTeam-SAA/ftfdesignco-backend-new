@@ -217,38 +217,6 @@ const getMyProfile = async (email: string) => {
   return result
 }
 
-// const updateUserProfile = async (payload: any, email: string, file: any) => {
-//   const user = await User.findOne({ email }).select("avatar");
-//   if (!user)
-//     throw new AppError(
-//       "No account found with the provided credentials.",
-//       StatusCodes.NOT_FOUND,
-//     );
-
-//   // eslint-disable-next-line prefer-const
-//   let updateData: any = { ...payload };
-//   let oldAvatarUrl: string | undefined;
-
-//   if (file) {
-//     const uploadResult = await uploadToCloudinary(file.path, "users");
-//     oldAvatarUrl = user.avatar;
-
-//     updateData.avatar = uploadResult.secure_url;
-//   }
-
-//   const result = await User.findOneAndUpdate({ email }, updateData, {
-//     new: true,
-//   }).select(
-//     "-password -otp -otpExpires -resetPasswordOtp -resetPasswordOtpExpires",
-//   );
-
-//   if (file && oldAvatarUrl) {
-//     await deleteFromCloudinary(oldAvatarUrl);
-//   }
-
-//   return result;
-// };
-
 const updateUserProfile = async (id: string, payload: any, file: any) => {
   const user = await User.findById(id).select('avatar')
   if (!user) throw new AppError('User not found', StatusCodes.NOT_FOUND)
@@ -389,6 +357,40 @@ const deleteUser = async (id: string) => {
   await User.deleteOne({ _id: user._id })
 }
 
+const updateUserBalance = async (balance: number) => {
+  // 1️⃣ Validate balance
+  if (typeof balance !== 'number' || balance < 0) {
+    throw new AppError(
+      'Balance must be a non-negative number',
+      StatusCodes.BAD_REQUEST,
+    )
+  }
+
+  // 2️⃣ Update all users' balance
+  const result = await User.updateMany(
+    {},
+    { balance },
+    {
+      runValidators: true,
+    },
+  )
+
+  if (!result.modifiedCount || result.modifiedCount === 0) {
+    throw new AppError('No users found to update', StatusCodes.NOT_FOUND)
+  }
+
+  // 3️⃣ Return updated users list
+  const updatedUsers = await User.find({}).select(
+    '-password -otp -otpExpires -resetPasswordOtp -resetPasswordOtpExpires',
+  )
+
+  return {
+    modifiedCount: result.modifiedCount,
+    matchedCount: result.matchedCount,
+    users: updatedUsers,
+  }
+}
+
 const userService = {
   registerUser,
   getAllUsers,
@@ -400,6 +402,7 @@ const userService = {
   deleteUser,
   resendOtpCode,
   verifyEmail,
+  updateUserBalance,
 }
 
 export default userService
