@@ -13,6 +13,7 @@ import { createToken } from '../../utils/tokenGenerate'
 import verificationCodeTemplate from '../../utils/verificationCodeTemplate'
 import { Order } from '../order/order.model'
 import { IUser } from './user.interface'
+import { Role } from '../role/role.model'
 import { User } from './user.model'
 
 const registerUser = async (payload: IUser) => {
@@ -161,9 +162,35 @@ const resendOtpCode = async (email: string) => {
   return result
 }
 
-const getAllUsers = async () => {
-  const result = await User.find()
-    .populate('role_id')
+const getAllUsers = async (query: Record<string, unknown>) => {
+  const { searchTerm, roleTitle } = query as {
+    searchTerm?: string
+    roleTitle?: string
+  }
+
+  const filter: Record<string, unknown> = {}
+
+  if (searchTerm) {
+    filter.$or = [
+      { firstName: { $regex: searchTerm, $options: 'i' } },
+      { lastName: { $regex: searchTerm, $options: 'i' } },
+      { email: { $regex: searchTerm, $options: 'i' } },
+    ]
+  }
+
+  if (roleTitle) {
+    const roles = await Role.find({
+      roleTitle: { $regex: roleTitle, $options: 'i' },
+    }).select('_id')
+
+    const roleIds = roles.map((role) => role._id)
+    if (roleIds.length === 0) return []
+
+    filter.role_id = { $in: roleIds }
+  }
+
+  const result = await User.find(filter)
+    .populate('role_id', 'roleTitle')
     .select(
       '-password -otp -otpExpires -resetPasswordOtp -resetPasswordOtpExpires',
     )
