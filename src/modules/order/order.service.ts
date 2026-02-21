@@ -5,6 +5,7 @@ import { Order } from './order.model'
 import { User } from '../user/user.model'
 import mongoose from 'mongoose'
 import { Product } from '../product/product.model'
+import { AddToCart } from '../addToCart/addToCart.model'
 
 // Create a new order
 const createOrder = async (payload: any) => {
@@ -66,6 +67,9 @@ const createOrder = async (payload: any) => {
 
     const [newOrder] = await Order.create([orderData], { session })
 
+    // Clear the user's cart after successful order creation
+    await AddToCart.deleteOne({ userId: payload.user }).session(session)
+
     await session.commitTransaction()
     // return newOrder;
     return await newOrder.populate('user', 'firstName lastName email')
@@ -113,30 +117,30 @@ const getAllOrders = async (query: Record<string, any>) => {
     // 3. Filter by region if provided
     ...(region
       ? [
-          {
-            $match: {
-              region: { $regex: region, $options: 'i' },
-            },
+        {
+          $match: {
+            region: { $regex: region, $options: 'i' },
           },
-        ]
+        },
+      ]
       : []),
 
     // 4. Search logic (User Fields + Order Fields)
     {
       $match: searchTerm
         ? {
-            $or: [
-              { 'user.firstName': { $regex: searchTerm, $options: 'i' } },
-              { 'user.email': { $regex: searchTerm, $options: 'i' } },
-              { region: { $regex: searchTerm, $options: 'i' } },
-              {
-                'selectedRoleDetails.roleTitle': {
-                  $regex: searchTerm,
-                  $options: 'i',
-                },
+          $or: [
+            { 'user.firstName': { $regex: searchTerm, $options: 'i' } },
+            { 'user.email': { $regex: searchTerm, $options: 'i' } },
+            { region: { $regex: searchTerm, $options: 'i' } },
+            {
+              'selectedRoleDetails.roleTitle': {
+                $regex: searchTerm,
+                $options: 'i',
               },
-            ],
-          }
+            },
+          ],
+        }
         : {},
     },
 
