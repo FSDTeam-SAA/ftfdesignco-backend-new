@@ -291,6 +291,7 @@ const getRigionProducts = async (
 
   // 1️⃣ Get paginated products
   const products = await Product.find({ rigion: productRigion })
+    .populate('targetRoles', 'roleTitle images')
     .skip(skip)
     .limit(limit)
     .lean()
