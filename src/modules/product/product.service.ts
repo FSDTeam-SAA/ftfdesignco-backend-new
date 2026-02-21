@@ -64,8 +64,8 @@ const getProductById = async (id: string): Promise<IProduct | null> => {
   }
 
   const result = await Product.findById(id).populate(
-    'role',
-    'firstName lastName email',
+    'targetRoles',
+    'roleTitle images',
   )
   return result
 }
@@ -152,8 +152,8 @@ const deleteProduct = async (id: string): Promise<IProduct | null> => {
 // Get products by type
 const getProductsByType = async (type: string): Promise<IProduct[]> => {
   const result = await Product.find({ type }).populate(
-    'role',
-    'firstName lastName email',
+    'targetRoles',
+    'roleTitle images',
   )
   return result
 }
@@ -162,9 +162,9 @@ const getProductsByType = async (type: string): Promise<IProduct[]> => {
 const getProductsByRole = async (roleId: string): Promise<IProduct[]> => {
   // Use 'targetRoles' to match your schema logic
   const result = await Product.find({
-    role: { $in: [roleId] },
+    targetRoles: { $in: [roleId] },
     status: 'active',
-  }).populate('role', 'roleTitle images')
+  }).populate('targetRoles', 'roleTitle images')
 
   return result
 }
