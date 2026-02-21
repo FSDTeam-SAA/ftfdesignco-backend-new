@@ -37,11 +37,6 @@ const productSchema = new Schema<IProduct, productModel>(
       required: true,
       min: 0,
     },
-    role: {
-      type: Schema.Types.ObjectId,
-      ref: 'Role',
-      required: true,
-    },
     targetRoles: [
       {
         type: Schema.Types.ObjectId,

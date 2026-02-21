@@ -176,55 +176,22 @@ const getAllProducts = async (
 ) => {
   const { searchTerm, price, availableQuantity, roleTitle } = query
 
-  // If roleTitle filter is provided, use aggregation pipeline
+  // Update logic to handle targetRoles array based on roleTitle
   if (roleTitle) {
-    const pipeline: any[] = [
+    const pipeline = [
       { $match: { status: 'active' } },
       {
         $lookup: {
           from: 'roles',
-          localField: 'role',
+          localField: 'targetRoles',
           foreignField: '_id',
-          as: 'roleData',
+          as: 'roles',
         },
       },
-      {
-        $match: {
-          'roleData.roleTitle': { $regex: roleTitle, $options: 'i' },
-        },
-      },
+      { $unwind: '$roles' },
+      { $match: { 'roles.roleTitle': roleTitle } },
+      { $group: { _id: '$_id', products: { $push: '$$ROOT' } } },
     ]
-
-    // Add other filters
-    if (searchTerm) {
-      pipeline.push({
-        $match: { title: { $regex: searchTerm, $options: 'i' } },
-      })
-    }
-
-    if (price) {
-      pipeline.push({ $match: { price: Number(price) } })
-    }
-
-    if (availableQuantity) {
-      pipeline.push({
-        $match: { availableQuantity: Number(availableQuantity) },
-      })
-    }
-
-    // Replace role with populated data
-    pipeline.push({
-      $addFields: {
-        role: { $arrayElemAt: ['$roleData', 0] },
-      },
-    })
-
-    pipeline.push({
-      $project: {
-        roleData: 0,
-      },
-    })
-
     return await Product.aggregate(pipeline)
   }
 
@@ -248,7 +215,7 @@ const getAllProducts = async (
     filter.$and.push({ availableQuantity: Number(availableQuantity) })
   }
 
-  return await Product.find(filter).populate('role', 'roleTitle')
+  return await Product.find(filter).populate('targetRoles', 'roleTitle')
 }
 
 const getAllProductInventories = async (

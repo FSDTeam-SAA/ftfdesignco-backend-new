@@ -2,10 +2,14 @@ import { z } from 'zod'
 
 const createProductValidationSchema = z.object({
   body: z.object({
-    images: z.array(z.object({
-      url: z.string(),
-      publicId: z.string()
-    })).optional(),
+    images: z
+      .array(
+        z.object({
+          url: z.string(),
+          publicId: z.string(),
+        }),
+      )
+      .optional(),
     title: z.string({
       required_error: 'Title is required',
     }),
@@ -23,31 +27,38 @@ const createProductValidationSchema = z.object({
         required_error: 'Available quantity is required',
       })
       .min(0, 'Available quantity must be at least 0'),
-    targetRoles: z.preprocess((val) => {
-      if (typeof val === 'string') return [val]; // Wrap single ID string in array
-      return val;
-    }, z.array(z.string()).optional().default([])),
+    targetRoles: z.preprocess(
+      (val) => {
+        if (typeof val === 'string') return [val]
+        if (Array.isArray(val)) return val
+        return []
+      },
+      z
+        .array(z.string({ required_error: 'At least one Role ID is required' }))
+        .min(1, 'At least one Role ID is required'),
+    ),
     price: z.coerce
       .number({
         required_error: 'Price is required',
       })
       .min(0, 'Price must be at least 0'),
-    role: z.string({
-      required_error: 'Role (User ID) is required',
-    }),
     status: z.enum(['active', 'deactive']).optional(),
     rigion: z.string({
-      required_error: "Rigion is required"
-    })
+      required_error: 'Rigion is required',
+    }),
   }),
 })
 
 const updateProductValidationSchema = z.object({
   body: z.object({
-    images: z.array(z.object({
-      url: z.string(),
-      publicId: z.string()
-    })).optional(),
+    images: z
+      .array(
+        z.object({
+          url: z.string(),
+          publicId: z.string(),
+        }),
+      )
+      .optional(),
     title: z.string().optional(),
     type: z.string().optional(),
     description: z.string().optional(),
@@ -57,7 +68,11 @@ const updateProductValidationSchema = z.object({
       .min(0, 'Available quantity must be at least 0')
       .optional(),
     price: z.coerce.number().min(0, 'Price must be at least 0').optional(),
-    role: z.string().optional(),
+    targetRoles: z.preprocess((val) => {
+      if (typeof val === 'string') return [val]
+      if (Array.isArray(val)) return val
+      return []
+    }, z.array(z.string()).optional()),
     status: z.enum(['active', 'deactive']).optional(),
   }),
 })

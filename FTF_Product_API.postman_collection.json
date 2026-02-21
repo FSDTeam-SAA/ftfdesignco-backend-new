@@ -1,0 +1,298 @@
+{
+  "info": {
+    "_postman_id": "ftf-product-api",
+    "name": "FTF Product API",
+    "description": "Product Management API Collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create Product",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "multipart/form-data"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "title",
+              "value": "Premium Sofa",
+              "type": "text"
+            },
+            {
+              "key": "type",
+              "value": "Furniture",
+              "type": "text"
+            },
+            {
+              "key": "description",
+              "value": "High quality premium sofa with leather finish",
+              "type": "text"
+            },
+            {
+              "key": "size",
+              "value": "Large",
+              "type": "text"
+            },
+            {
+              "key": "availableQuantity",
+              "value": "50",
+              "type": "text"
+            },
+            {
+              "key": "price",
+              "value": "1299.99",
+              "type": "text"
+            },
+            {
+              "key": "targetRoles",
+              "value": "role-id-1",
+              "type": "text"
+            },
+            {
+              "key": "rigion",
+              "value": "North America",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "value": "active",
+              "type": "text"
+            },
+            {
+              "key": "images",
+              "type": "file",
+              "disabled": true
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/products/create",
+          "protocol": "http",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "products", "create"]
+        }
+      }
+    },
+    {
+      "name": "Get All Products",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/v1/products/all",
+          "protocol": "http",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "products", "all"]
+        }
+      }
+    },
+    {
+      "name": "Get Product By ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/v1/products/:id",
+          "protocol": "http",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "products", ":id"],
+          "variable": [
+            {
+              "key": "id",
+              "value": "product-id-here"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Products By Type",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/v1/products/type/:type",
+          "protocol": "http",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "products", "type", ":type"],
+          "variable": [
+            {
+              "key": "type",
+              "value": "Furniture"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Products By Role",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/v1/products/user/:roleId",
+          "protocol": "http",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "products", "user", ":roleId"],
+          "variable": [
+            {
+              "key": "roleId",
+              "value": "role-id-here"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get All Product Inventories",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/v1/products/inventories?page=1&limit=10",
+          "protocol": "http",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "products", "inventories"],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Region Products",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/v1/products/rigion/products?page=1&limit=10&rigion=North America",
+          "protocol": "http",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "products", "rigion", "products"],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            },
+            {
+              "key": "rigion",
+              "value": "North America"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Update Product",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "multipart/form-data"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "title",
+              "value": "Updated Premium Sofa",
+              "type": "text"
+            },
+            {
+              "key": "type",
+              "value": "Furniture",
+              "type": "text"
+            },
+            {
+              "key": "description",
+              "value": "Updated description with premium leather",
+              "type": "text"
+            },
+            {
+              "key": "size",
+              "value": "Large",
+              "type": "text"
+            },
+            {
+              "key": "availableQuantity",
+              "value": "45",
+              "type": "text"
+            },
+            {
+              "key": "price",
+              "value": "1399.99",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "value": "active",
+              "type": "text"
+            },
+            {
+              "key": "images",
+              "type": "file",
+              "disabled": true
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/products/:id",
+          "protocol": "http",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "products", ":id"],
+          "variable": [
+            {
+              "key": "id",
+              "value": "product-id-here"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Delete Product",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/v1/products/:id",
+          "protocol": "http",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "products", ":id"],
+          "variable": [
+            {
+              "key": "id",
+              "value": "product-id-here"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000",
+      "type": "string"
+    }
+  ]
+}
