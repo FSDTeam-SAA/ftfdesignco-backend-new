@@ -289,8 +289,8 @@ const getRigionProducts = async (
   // Calculate skip
   const skip = (page - 1) * limit
 
-  // 1️⃣ Get paginated products
-  const products = await Product.find({ rigion: productRigion })
+  // 1️⃣ Get paginated products (rigion is now an array, use $in)
+  const products = await Product.find({ rigion: { $in: [productRigion] } })
     .populate('targetRoles', 'roleTitle images')
     .skip(skip)
     .limit(limit)

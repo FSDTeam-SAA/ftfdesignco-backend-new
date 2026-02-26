@@ -43,9 +43,16 @@ const createProductValidationSchema = z.object({
       })
       .min(0, 'Price must be at least 0'),
     status: z.enum(['active', 'deactive']).optional(),
-    rigion: z.string({
-      required_error: 'Rigion is required',
-    }),
+    rigion: z.preprocess(
+      (val) => {
+        if (typeof val === 'string') return [val]
+        if (Array.isArray(val)) return val
+        return []
+      },
+      z
+        .array(z.string({ required_error: 'At least one rigion is required' }))
+        .min(1, 'At least one rigion is required'),
+    ),
   }),
 })
 
@@ -74,6 +81,11 @@ const updateProductValidationSchema = z.object({
       return []
     }, z.array(z.string()).optional()),
     status: z.enum(['active', 'deactive']).optional(),
+    rigion: z.preprocess((val) => {
+      if (typeof val === 'string') return [val]
+      if (Array.isArray(val)) return val
+      return []
+    }, z.array(z.string()).optional()),
   }),
 })
 

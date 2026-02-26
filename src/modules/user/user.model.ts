@@ -35,6 +35,10 @@ const userSchema = new Schema<IUser>(
     region: {
       type: String,
     },
+    gender: {
+      type: String,
+      enum: ['male', 'female', 'other'],
+    },
     selectedRole: {
       type: Schema.Types.ObjectId,
       ref: 'Role',

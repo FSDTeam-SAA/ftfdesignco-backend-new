@@ -49,10 +49,12 @@ const productSchema = new Schema<IProduct, productModel>(
       enum: ['active', 'deactive'],
       default: 'active',
     },
-    rigion: {
-      type: String,
-      required: true,
-    },
+    rigion: [
+      {
+        type: String,
+        required: true,
+      },
+    ],
   },
   {
     timestamps: true,
