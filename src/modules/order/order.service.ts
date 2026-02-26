@@ -5,6 +5,7 @@ import { Order } from './order.model'
 import { User } from '../user/user.model'
 import mongoose from 'mongoose'
 import { Product } from '../product/product.model'
+import { AddToCart } from '../addToCart/addToCart.model'
 
 // Create a new order
 const createOrder = async (payload: any) => {
@@ -66,6 +67,9 @@ const createOrder = async (payload: any) => {
 
     const [newOrder] = await Order.create([orderData], { session })
 
+    // Clear the user's cart after successful order creation
+    await AddToCart.deleteOne({ userId: payload.user }).session(session)
+
     await session.commitTransaction()
     // return newOrder;
     return await newOrder.populate('user', 'firstName lastName email')
@@ -76,80 +80,6 @@ const createOrder = async (payload: any) => {
     session.endSession()
   }
 }
-
-// Get all orders with pagination
-// const getAllOrders = async (query: Record<string, unknown>) => {
-//   // 1. Set defaults for page and limit
-//   const page = Number(query.page) || 1;
-//   const limit = Number(query.limit) || 10;
-//   const skip = (page - 1) * limit;
-
-//   // 2. Fetch paginated data
-//   const result = await Order.find()
-//     .sort({ createdAt: -1 }) // Newest orders first
-//     .skip(skip)
-//     .limit(limit)
-//     .populate('user', 'firstName lastName email phoneNumber') // Updated from userId
-//     .populate('products.productId', 'title price image');
-
-//   // 3. Count total documents for frontend math
-//   const total = await Order.countDocuments();
-//   const totalPage = Math.ceil(total / limit);
-
-//   return {
-//     meta: {
-//       page,
-//       limit,
-//       total,
-//       totalPage,
-//     },
-//     data: result,
-//   };
-// };
-
-// const getAllOrders = async (query: Record<string, any>) => {
-//   const { searchTerm, sort, page, limit } = query;
-//   const skip = (page - 1) * limit;
-//   const sortOrder = sort === 'oldest' ? 1 : -1;
-
-//   const orderQuery: Record<string, any> = {};
-
-//   // ELITE: Handle Cross-Collection Search
-//   if (searchTerm) {
-//     const users = await User.find({
-//       $or: [
-//         { firstName: { $regex: searchTerm, $options: 'i' } },
-//         { lastName: { $regex: searchTerm, $options: 'i' } },
-//         { email: { $regex: searchTerm, $options: 'i' } },
-//       ],
-//     }).select('_id');
-
-//     const userIds = users.map((u) => u._id);
-
-//     // If no users match, return empty result immediately to save DB load
-//     if (userIds.length === 0) return { meta: { page, limit, total: 0, totalPage: 0 }, data: [] };
-
-//     orderQuery.user = { $in: userIds };
-//   }
-
-//   // Parallel Execution
-//   const [data, total] = await Promise.all([
-//     Order.find(orderQuery)
-//       .sort({ createdAt: sortOrder })
-//       .skip(skip)
-//       .limit(limit)
-//       .populate('role', 'roleTitle')
-//       .populate('user', 'firstName lastName email phoneNumber'),
-//     Order.countDocuments(orderQuery),
-//   ]);
-
-//   const totalPage = Math.ceil(total / limit);
-
-//   return {
-//     meta: { page, limit, total, totalPage },
-//     data,
-//   };
-// };
 
 const getAllOrders = async (query: Record<string, any>) => {
   const { searchTerm, sort, page = 1, limit = 10, region } = query
@@ -187,30 +117,30 @@ const getAllOrders = async (query: Record<string, any>) => {
     // 3. Filter by region if provided
     ...(region
       ? [
-          {
-            $match: {
-              region: { $regex: region, $options: 'i' },
-            },
+        {
+          $match: {
+            region: { $regex: region, $options: 'i' },
           },
-        ]
+        },
+      ]
       : []),
 
     // 4. Search logic (User Fields + Order Fields)
     {
       $match: searchTerm
         ? {
-            $or: [
-              { 'user.firstName': { $regex: searchTerm, $options: 'i' } },
-              { 'user.email': { $regex: searchTerm, $options: 'i' } },
-              { region: { $regex: searchTerm, $options: 'i' } },
-              {
-                'selectedRoleDetails.roleTitle': {
-                  $regex: searchTerm,
-                  $options: 'i',
-                },
+          $or: [
+            { 'user.firstName': { $regex: searchTerm, $options: 'i' } },
+            { 'user.email': { $regex: searchTerm, $options: 'i' } },
+            { region: { $regex: searchTerm, $options: 'i' } },
+            {
+              'selectedRoleDetails.roleTitle': {
+                $regex: searchTerm,
+                $options: 'i',
               },
-            ],
-          }
+            },
+          ],
+        }
         : {},
     },
 
