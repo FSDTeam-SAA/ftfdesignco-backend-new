@@ -24,14 +24,15 @@ export const loginLimiter = rateLimit({
 })
 
 const corsOptions = {
-  origin: [
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'https://pjswag-store.vercel.app',
-    'https://pjswag-dashboard.vercel.app',
-    'https://portal.pjswag.com',
-    'https://admin.portal.pjswag.com',
-  ],
+  // origin: [
+  //   'http://localhost:3000',
+  //   'http://localhost:3001',
+  //   'https://pjswag-store.vercel.app',
+  //   'https://pjswag-dashboard.vercel.app',
+  //   'https://portal.pjswag.com',
+  //   'https://admin.portal.pjswag.com',
+  // ],
+  origin: true,
   methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
   credentials: true,
   optionsSuccessStatus: 204,
