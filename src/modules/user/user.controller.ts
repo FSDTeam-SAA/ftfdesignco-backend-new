@@ -42,30 +42,6 @@ const addEmployee = catchAsync(async (req, res) => {
   })
 })
 
-const verifyEmail = catchAsync(async (req, res) => {
-  const { email } = req.user
-  const result = await userService.verifyEmail(email, req.body)
-
-  sendResponse(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: 'Email verified successfully. You can now log in.',
-    data: result,
-  })
-})
-
-const resendOtpCode = catchAsync(async (req, res) => {
-  const { email } = req.user
-  const result = await userService.resendOtpCode(email)
-
-  sendResponse(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: 'OTP code sent successfully',
-    data: result,
-  })
-})
-
 const getAllUsers = catchAsync(async (req, res) => {
   const result = await userService.getAllUsers(req.query)
 
@@ -185,8 +161,6 @@ const userController = {
   getAdminId,
   addEmployee,
   deleteUser,
-  verifyEmail,
-  resendOtpCode,
   updateUserBalance,
 }
 
