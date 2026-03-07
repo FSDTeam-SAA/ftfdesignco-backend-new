@@ -3,7 +3,6 @@ import { IOrder, orderModel } from './order.interface'
 
 const orderSchema = new Schema<IOrder, orderModel>(
   {
-
     user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     totalAmount: { type: Number, required: true },
     remainingBalance: { type: Number, required: true },
@@ -31,8 +30,8 @@ const orderSchema = new Schema<IOrder, orderModel>(
     ],
     status: {
       type: String,
-      enum: ['pending', 'paid', 'delivered', 'cancelled'],
-      default: 'pending',
+      enum: ['new', 'inprogress', 'shipped/complete'],
+      default: 'new',
     },
   },
   {
