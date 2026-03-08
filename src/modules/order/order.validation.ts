@@ -26,7 +26,7 @@ const updateOrderValidationSchema = z.object({
       )
       .optional(),
     status: z
-      .enum(['pending', 'paid', 'shipped', 'delivered', 'cancelled'])
+      .enum(['new', 'inprogress', 'shipped/complete'])
       .optional(),
   }),
 })
