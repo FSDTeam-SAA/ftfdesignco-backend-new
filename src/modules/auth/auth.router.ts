@@ -22,7 +22,6 @@ router.post(
   '/resend-forgot-otp',
   auth(USER_ROLE.OWNER, USER_ROLE.EMPLOYER),
   authController.resendForgotOtpCode,
-  
 )
 
 router.post(
@@ -41,6 +40,13 @@ router.post(
   '/change-password',
   auth(USER_ROLE.OWNER, USER_ROLE.EMPLOYER),
   authController.changePassword,
+)
+
+router.post(
+  '/admin/reset-password',
+  auth(USER_ROLE.ADMIN),
+  validateRequest(authValidationSchema.adminResetPasswordValidation),
+  authController.adminResetPassword,
 )
 
 const authRouter = router

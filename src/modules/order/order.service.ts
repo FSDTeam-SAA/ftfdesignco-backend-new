@@ -117,30 +117,30 @@ const getAllOrders = async (query: Record<string, any>) => {
     // 3. Filter by region if provided
     ...(region
       ? [
-        {
-          $match: {
-            region: { $regex: region, $options: 'i' },
+          {
+            $match: {
+              region: { $regex: region, $options: 'i' },
+            },
           },
-        },
-      ]
+        ]
       : []),
 
     // 4. Search logic (User Fields + Order Fields)
     {
       $match: searchTerm
         ? {
-          $or: [
-            { 'user.firstName': { $regex: searchTerm, $options: 'i' } },
-            { 'user.email': { $regex: searchTerm, $options: 'i' } },
-            { region: { $regex: searchTerm, $options: 'i' } },
-            {
-              'selectedRoleDetails.roleTitle': {
-                $regex: searchTerm,
-                $options: 'i',
+            $or: [
+              { 'user.firstName': { $regex: searchTerm, $options: 'i' } },
+              { 'user.email': { $regex: searchTerm, $options: 'i' } },
+              { region: { $regex: searchTerm, $options: 'i' } },
+              {
+                'selectedRoleDetails.roleTitle': {
+                  $regex: searchTerm,
+                  $options: 'i',
+                },
               },
-            },
-          ],
-        }
+            ],
+          }
         : {},
     },
 
@@ -158,9 +158,48 @@ const getAllOrders = async (query: Record<string, any>) => {
           },
           { $skip: skip },
           { $limit: Number(limit) },
-          // 5. SECURITY: Project out sensitive fields
+          // 5. Populate products.productId
+          {
+            $lookup: {
+              from: 'products',
+              localField: 'products.productId',
+              foreignField: '_id',
+              as: 'productDetails',
+            },
+          },
+          {
+            $addFields: {
+              products: {
+                $map: {
+                  input: '$products',
+                  as: 'item',
+                  in: {
+                    $mergeObjects: [
+                      '$$item',
+                      {
+                        productId: {
+                          $arrayElemAt: [
+                            {
+                              $filter: {
+                                input: '$productDetails',
+                                as: 'pd',
+                                cond: { $eq: ['$$pd._id', '$$item.productId'] },
+                              },
+                            },
+                            0,
+                          ],
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+          // 6. SECURITY: Project out sensitive fields
           {
             $project: {
+              productDetails: 0,
               'user.password': 0,
               'user.otp': 0,
               'user.resetPasswordOtp': 0,
@@ -218,7 +257,7 @@ const updateOrderStatus = async (
     new: true,
     runValidators: true,
   })
-    .populate('userId', 'firstName lastName email')
+    .populate('user', 'firstName lastName email')
     .populate('products.productId', 'title price')
 
   if (!result) {
