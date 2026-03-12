@@ -6,6 +6,8 @@ import { User } from '../user/user.model'
 import mongoose from 'mongoose'
 import { Product } from '../product/product.model'
 import { AddToCart } from '../addToCart/addToCart.model'
+import sendEmail from '../../utils/sendEmail'
+import orderConfirmationTemplate from '../../utils/orderConfirmationTemplate'
 
 // Create a new order
 const createOrder = async (payload: any) => {
@@ -71,8 +73,26 @@ const createOrder = async (payload: any) => {
     await AddToCart.deleteOne({ userId: payload.user }).session(session)
 
     await session.commitTransaction()
-    // return newOrder;
-    return await newOrder.populate('user', 'firstName lastName email')
+
+    const populatedOrder = await newOrder.populate(
+      'user',
+      'firstName lastName email',
+    )
+
+    // Send order confirmation email (fire-and-forget, non-blocking)
+    const orderUser = populatedOrder.user as any
+    if (orderUser?.email) {
+      sendEmail({
+        to: orderUser.email,
+        subject: 'Order Confirmation – Your order has been placed',
+        html: orderConfirmationTemplate({
+          firstName: orderUser.firstName ?? 'Customer',
+          region: (populatedOrder as any).region,
+        }),
+      }).catch((err) => console.error('Order confirmation email failed:', err))
+    }
+
+    return populatedOrder
   } catch (error) {
     await session.abortTransaction()
     throw error
