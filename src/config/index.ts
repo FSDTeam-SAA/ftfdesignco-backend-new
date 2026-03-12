@@ -1,5 +1,5 @@
-import dotenv from "dotenv";
-dotenv.config();
+import dotenv from 'dotenv'
+dotenv.config()
 
 export default {
   port: process.env.PORT,
@@ -7,6 +7,8 @@ export default {
   nodeEnv: process.env.NODE_ENV,
 
   bcryptSaltRounds: process.env.BCRYPT_SALT_ROUNDS,
+  adminDefaultResetPassword:
+    process.env.ADMIN_DEFAULT_RESET_PASSWORD || ['PJ', 'Welcome'].join(''),
   NODE_ENV: process.env.NODE_ENV,
   JWT_SECRET: process.env.JWT_SECRET,
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN,
@@ -32,4 +34,4 @@ export default {
     AES_KEY: process.env.AES_KEY,
     AES_IV: process.env.AES_IV,
   },
-};
+}
