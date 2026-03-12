@@ -2,33 +2,33 @@ import { StatusCodes } from 'http-status-codes'
 import catchAsync from '../../utils/catchAsync'
 import sendResponse from '../../utils/sendResponse'
 import roleService from './role.service'
-import { uploadToCloudinary } from '../../utils/cloudinary';
-import AppError from '../../errors/AppError';
+import { uploadToCloudinary } from '../../utils/cloudinary'
+import AppError from '../../errors/AppError'
 
 // Create a new role
 // role.controller.ts
 const createRole = catchAsync(async (req, res) => {
   // 1. Manual guard for the file
   if (!req.file) {
-    throw new AppError('Role image file is required', StatusCodes.BAD_REQUEST);
+    throw new AppError('Role image file is required', StatusCodes.BAD_REQUEST)
   }
 
   // 2. Upload to Cloudinary
-  const uploadResult = await uploadToCloudinary(req.file.path, 'roles');
+  const uploadResult = await uploadToCloudinary(req.file.path, 'roles')
 
   // 3. Create the role with the NEW URL
   const result = await roleService.createRole({
     ...req.body,
     images: uploadResult.secure_url,
-  });
+  })
 
   sendResponse(res, {
     statusCode: StatusCodes.CREATED,
     success: true,
     message: 'Role created successfully',
     data: result,
-  });
-});
+  })
+})
 
 // Get all roles
 const getAllRoles = catchAsync(async (req, res) => {
@@ -58,7 +58,14 @@ const getRoleById = catchAsync(async (req, res) => {
 // Update role by ID
 const updateRole = catchAsync(async (req, res) => {
   const { id } = req.params
-  const result = await roleService.updateRole(id as string, req.body)
+  const payload = { ...req.body }
+
+  if (req.file) {
+    const uploadResult = await uploadToCloudinary(req.file.path, 'roles')
+    payload.images = uploadResult.secure_url
+  }
+
+  const result = await roleService.updateRole(id as string, payload)
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -82,18 +89,18 @@ const deleteRole = catchAsync(async (req, res) => {
 })
 
 const setUserRole = catchAsync(async (req, res) => {
-  const userId = req.user.id; // Assuming your auth middleware attaches user to req
-  const { roleId } = req.body;
+  const userId = req.user.id // Assuming your auth middleware attaches user to req
+  const { roleId } = req.body
 
-  const result = await roleService.setUserRoleFromDB(userId, roleId);
+  const result = await roleService.setUserRoleFromDB(userId, roleId)
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'User job role updated successfully',
     data: result,
-  });
-});
+  })
+})
 
 const roleController = {
   createRole,
@@ -101,7 +108,7 @@ const roleController = {
   getRoleById,
   updateRole,
   deleteRole,
-  setUserRole
+  setUserRole,
 }
 
 export default roleController
