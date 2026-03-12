@@ -158,9 +158,48 @@ const getAllOrders = async (query: Record<string, any>) => {
           },
           { $skip: skip },
           { $limit: Number(limit) },
-          // 5. SECURITY: Project out sensitive fields
+          // 5. Populate products.productId
+          {
+            $lookup: {
+              from: 'products',
+              localField: 'products.productId',
+              foreignField: '_id',
+              as: 'productDetails',
+            },
+          },
+          {
+            $addFields: {
+              products: {
+                $map: {
+                  input: '$products',
+                  as: 'item',
+                  in: {
+                    $mergeObjects: [
+                      '$$item',
+                      {
+                        productId: {
+                          $arrayElemAt: [
+                            {
+                              $filter: {
+                                input: '$productDetails',
+                                as: 'pd',
+                                cond: { $eq: ['$$pd._id', '$$item.productId'] },
+                              },
+                            },
+                            0,
+                          ],
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+          // 6. SECURITY: Project out sensitive fields
           {
             $project: {
+              productDetails: 0,
               'user.password': 0,
               'user.otp': 0,
               'user.resetPasswordOtp': 0,
