@@ -38,18 +38,18 @@ const createOrder = async (payload: any) => {
     }
 
     // 2. DYNAMIC STATUS & BALANCE LOGIC
-    let orderStatus = 'pending'
+    let orderStatus = 'new'
     let finalRemainingBalance = user.balance
 
     if (user.balance >= calculatedTotalAmount) {
       // User has enough money -> Pay immediately
       user.balance -= calculatedTotalAmount
       finalRemainingBalance = user.balance
-      orderStatus = 'paid'
+      orderStatus = 'inprogress'
       await user.save({ session })
     } else {
-      // Insufficient balance -> Order stays 'pending' (User pays later/Admin collects)
-      orderStatus = 'pending'
+      // Insufficient balance -> Order stays 'new' (User pays later/Admin collects)
+      orderStatus = 'new'
     }
 
     // 3. Save Products (Stock is reserved regardless of payment status)
@@ -241,7 +241,7 @@ const getMyPaymentHistoryFromDB = async (userId: string): Promise<IOrder[]> => {
 
   const history = await Order.find({
     user: userId,
-    status: 'paid', // Only show successful payments
+    status: 'inprogress', // Only show orders in progress
   })
     .sort({ createdAt: -1 }) // Newest first
     .populate('products.productId', 'title price') // Show product details
