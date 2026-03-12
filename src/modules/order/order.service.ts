@@ -117,30 +117,30 @@ const getAllOrders = async (query: Record<string, any>) => {
     // 3. Filter by region if provided
     ...(region
       ? [
-        {
-          $match: {
-            region: { $regex: region, $options: 'i' },
+          {
+            $match: {
+              region: { $regex: region, $options: 'i' },
+            },
           },
-        },
-      ]
+        ]
       : []),
 
     // 4. Search logic (User Fields + Order Fields)
     {
       $match: searchTerm
         ? {
-          $or: [
-            { 'user.firstName': { $regex: searchTerm, $options: 'i' } },
-            { 'user.email': { $regex: searchTerm, $options: 'i' } },
-            { region: { $regex: searchTerm, $options: 'i' } },
-            {
-              'selectedRoleDetails.roleTitle': {
-                $regex: searchTerm,
-                $options: 'i',
+            $or: [
+              { 'user.firstName': { $regex: searchTerm, $options: 'i' } },
+              { 'user.email': { $regex: searchTerm, $options: 'i' } },
+              { region: { $regex: searchTerm, $options: 'i' } },
+              {
+                'selectedRoleDetails.roleTitle': {
+                  $regex: searchTerm,
+                  $options: 'i',
+                },
               },
-            },
-          ],
-        }
+            ],
+          }
         : {},
     },
 
@@ -218,7 +218,7 @@ const updateOrderStatus = async (
     new: true,
     runValidators: true,
   })
-    .populate('userId', 'firstName lastName email')
+    .populate('user', 'firstName lastName email')
     .populate('products.productId', 'title price')
 
   if (!result) {
