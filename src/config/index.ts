@@ -34,4 +34,6 @@ export default {
     AES_KEY: process.env.AES_KEY,
     AES_IV: process.env.AES_IV,
   },
+
+  backendUrl: process.env.BACKEND_URL || `http://localhost:${process.env.PORT}`,
 }

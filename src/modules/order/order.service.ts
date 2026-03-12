@@ -6,6 +6,9 @@ import { User } from '../user/user.model'
 import mongoose from 'mongoose'
 import { Product } from '../product/product.model'
 import { AddToCart } from '../addToCart/addToCart.model'
+import sendEmail from '../../utils/sendEmail'
+import orderConfirmationTemplate from '../../utils/orderConfirmationTemplate'
+import orderCompleteTemplate from '../../utils/orderCompleteTemplate'
 
 // Create a new order
 const createOrder = async (payload: any) => {
@@ -71,8 +74,42 @@ const createOrder = async (payload: any) => {
     await AddToCart.deleteOne({ userId: payload.user }).session(session)
 
     await session.commitTransaction()
-    // return newOrder;
-    return await newOrder.populate('user', 'firstName lastName email')
+
+    const populatedOrder = await newOrder.populate(
+      'user',
+      'firstName lastName email',
+    )
+
+    // Notify all admin (owner) users about the new order – fire-and-forget
+    const orderUser = populatedOrder.user as any
+    const customerName = orderUser
+      ? `${orderUser.firstName ?? ''} ${orderUser.lastName ?? ''}`.trim() ||
+        'Customer'
+      : 'Customer'
+    const orderRegion = (populatedOrder as any).region as string
+
+    User.find({ role: 'owner' }, 'email')
+      .lean()
+      .then((admins) => {
+        const emailPromises = admins
+          .filter((a) => !!a.email)
+          .map((admin) =>
+            sendEmail({
+              to: admin.email,
+              subject: 'New Order Placed – Action Required',
+              html: orderConfirmationTemplate({
+                customerName,
+                region: orderRegion,
+              }),
+            }),
+          )
+        return Promise.allSettled(emailPromises)
+      })
+      .catch((err) =>
+        console.error('Admin order notification emails failed:', err),
+      )
+
+    return populatedOrder
   } catch (error) {
     await session.abortTransaction()
     throw error
@@ -263,6 +300,22 @@ const updateOrderStatus = async (
   if (!result) {
     throw new AppError('Order not found', StatusCodes.NOT_FOUND)
   }
+
+  // Email the customer when their order is marked shipped/complete
+  if (payload.status === 'shipped/complete') {
+    const orderUser = result.user as any
+    if (orderUser?.email) {
+      sendEmail({
+        to: orderUser.email,
+        subject: 'Your Order is Complete – Ready for Pickup!',
+        html: orderCompleteTemplate({
+          firstName: orderUser.firstName ?? 'Customer',
+          region: (result as any).region,
+        }),
+      }).catch((err) => console.error('Order complete email failed:', err))
+    }
+  }
+
   return result
 }
 
