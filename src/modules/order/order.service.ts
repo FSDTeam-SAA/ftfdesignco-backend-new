@@ -79,18 +79,34 @@ const createOrder = async (payload: any) => {
       'firstName lastName email',
     )
 
-    // Send order confirmation email (fire-and-forget, non-blocking)
+    // Notify all admin (owner) users about the new order – fire-and-forget
     const orderUser = populatedOrder.user as any
-    if (orderUser?.email) {
-      sendEmail({
-        to: orderUser.email,
-        subject: 'Order Confirmation – Your order has been placed',
-        html: orderConfirmationTemplate({
-          firstName: orderUser.firstName ?? 'Customer',
-          region: (populatedOrder as any).region,
-        }),
-      }).catch((err) => console.error('Order confirmation email failed:', err))
-    }
+    const customerName = orderUser
+      ? `${orderUser.firstName ?? ''} ${orderUser.lastName ?? ''}`.trim() ||
+        'Customer'
+      : 'Customer'
+    const orderRegion = (populatedOrder as any).region as string
+
+    User.find({ role: 'owner' }, 'email')
+      .lean()
+      .then((admins) => {
+        const emailPromises = admins
+          .filter((a) => !!a.email)
+          .map((admin) =>
+            sendEmail({
+              to: admin.email,
+              subject: 'New Order Placed – Action Required',
+              html: orderConfirmationTemplate({
+                customerName,
+                region: orderRegion,
+              }),
+            }),
+          )
+        return Promise.allSettled(emailPromises)
+      })
+      .catch((err) =>
+        console.error('Admin order notification emails failed:', err),
+      )
 
     return populatedOrder
   } catch (error) {
