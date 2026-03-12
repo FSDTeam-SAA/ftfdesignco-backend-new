@@ -44,7 +44,7 @@ router.post(
 
 router.post(
   '/admin/reset-password',
-  auth(USER_ROLE.ADMIN),
+  auth(USER_ROLE.OWNER),
   validateRequest(authValidationSchema.adminResetPasswordValidation),
   authController.adminResetPassword,
 )
