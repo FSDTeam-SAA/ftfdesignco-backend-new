@@ -5,7 +5,12 @@ import addToCartService from './addToCart.service'
 
 // Add product to cart
 const addToCart = catchAsync(async (req, res) => {
-  const result = await addToCartService.addToCart(req.body)
+  const userId = req.user.id
+
+  const result = await addToCartService.addToCart({
+    userId,
+    products: req.body.products,
+  })
 
   sendResponse(res, {
     statusCode: StatusCodes.CREATED,

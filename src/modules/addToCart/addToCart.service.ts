@@ -8,77 +8,141 @@ import { Product } from '../product/product.model'
 // const addToCart = async (payload: { userId: string; products: any[] }) => {
 //   const productIds = payload.products.map((p) => p.productId);
 
+// const addToCart = async (payload: { userId: string; products: any[] }) => {
+//   // ── Step 1: Validate that every incoming productId actually exists in the DB ──
+//   const incomingIds = payload.products.map((p) => p.productId)
+//   const dbProducts = await Product.find({ _id: { $in: incomingIds } })
+
+//   if (dbProducts.length !== incomingIds.length) {
+//     throw new AppError('One or more products not found', StatusCodes.NOT_FOUND)
+//   }
+
+//   // ── Step 2: Load the existing cart for this user (may be null) ──
+//   const existingCart = await AddToCart.findOne({ userId: payload.userId })
+
+//   let mergedProducts: any[]
+
+//   if (existingCart) {
+//     // The user already has a cart → we must MERGE, not replace.
+//     //
+//     // Start with a copy of what's already in the cart.
+//     mergedProducts = [...existingCart.products.map((p: any) => p.toObject())]
+
+//     for (const incomingItem of payload.products) {
+//       const existingIndex = mergedProducts.findIndex(
+//         (m) =>
+//           m.productId.toString() === incomingItem.productId.toString() &&
+//           m.size === incomingItem.size,
+//       )
+
+//       if (existingIndex === -1) {
+//         mergedProducts.push(incomingItem)
+//       } else {
+//         mergedProducts[existingIndex].quantity += incomingItem.quantity
+//       }
+//     }
+//   } else {
+//     // No existing cart → the incoming products become the cart as-is.
+//     mergedProducts = payload.products
+//   }
+
+//   // ── Step 3: Recalculate totalPrice from the MERGED list ──
+//   const allProductIds = mergedProducts.map((item) => item.productId)
+//   const allDbProducts = await Product.find({ _id: { $in: allProductIds } })
+
+//   if (allDbProducts.length !== allProductIds.length) {
+//     throw new AppError('One or more products not found', StatusCodes.NOT_FOUND)
+//   }
+
+//   const priceMap = new Map(
+//     allDbProducts.map((p) => [p._id.toString(), p.price] as const),
+//   )
+
+//   const calculatedTotalPrice = mergedProducts.reduce((acc, item) => {
+//     const productPrice = priceMap.get(item.productId.toString()) ?? 0
+//     return acc + productPrice * item.quantity
+//   }, 0)
+
+//   // ── Step 4: Persist (upsert) the merged cart ──
+//   const result = await AddToCart.findOneAndUpdate(
+//     { userId: payload.userId },
+//     {
+//       $set: {
+//         products: mergedProducts,
+//         totalPrice: calculatedTotalPrice,
+//       },
+//     },
+//     { upsert: true, new: true, runValidators: true },
+//   ).populate({
+//     path: 'products.productId',
+//     select: 'images title price',
+//   })
+
+//   return result
+// }
+
+
 const addToCart = async (payload: { userId: string; products: any[] }) => {
-  // ── Step 1: Validate that every incoming productId actually exists in the DB ──
+
+  // validate incoming products
   const incomingIds = payload.products.map((p) => p.productId)
+
   const dbProducts = await Product.find({ _id: { $in: incomingIds } })
 
   if (dbProducts.length !== incomingIds.length) {
     throw new AppError('One or more products not found', StatusCodes.NOT_FOUND)
   }
 
-  // ── Step 2: Load the existing cart for this user (may be null) ──
-  const existingCart = await AddToCart.findOne({ userId: payload.userId })
+  // get existing cart
+  let cart = await AddToCart.findOne({ userId: payload.userId })
 
-  let mergedProducts: any[]
+  if (!cart) {
+    cart = await AddToCart.create({
+      userId: payload.userId,
+      products: [],
+      totalPrice: 0,
+    })
+  }
 
-  if (existingCart) {
-    // The user already has a cart → we must MERGE, not replace.
-    //
-    // Start with a copy of what's already in the cart.
-    mergedProducts = [...existingCart.products.map((p: any) => p.toObject())]
+  const mergedProducts = [...cart.products.map((p: any) => p.toObject())]
 
-    for (const incomingItem of payload.products) {
-      const existingIndex = mergedProducts.findIndex(
-        (m) =>
-          m.productId.toString() === incomingItem.productId.toString() &&
-          m.size === incomingItem.size,
-      )
+  for (const incomingItem of payload.products) {
+    const index = mergedProducts.findIndex(
+      (item) =>
+        item.productId.toString() === incomingItem.productId &&
+        item.size === incomingItem.size
+    )
 
-      if (existingIndex === -1) {
-        mergedProducts.push(incomingItem)
-      } else {
-        mergedProducts[existingIndex].quantity += incomingItem.quantity
-      }
+    if (index === -1) {
+      mergedProducts.push(incomingItem)
+    } else {
+      mergedProducts[index].quantity += incomingItem.quantity
     }
-  } else {
-    // No existing cart → the incoming products become the cart as-is.
-    mergedProducts = payload.products
   }
 
-  // ── Step 3: Recalculate totalPrice from the MERGED list ──
-  const allProductIds = mergedProducts.map((item) => item.productId)
-  const allDbProducts = await Product.find({ _id: { $in: allProductIds } })
+  // recalc price
+  const allIds = mergedProducts.map((item) => item.productId)
 
-  if (allDbProducts.length !== allProductIds.length) {
-    throw new AppError('One or more products not found', StatusCodes.NOT_FOUND)
-  }
+  const allProducts = await Product.find({ _id: { $in: allIds } })
 
   const priceMap = new Map(
-    allDbProducts.map((p) => [p._id.toString(), p.price] as const),
+    allProducts.map((p) => [p._id.toString(), p.price])
   )
 
-  const calculatedTotalPrice = mergedProducts.reduce((acc, item) => {
-    const productPrice = priceMap.get(item.productId.toString()) ?? 0
-    return acc + productPrice * item.quantity
+  const totalPrice = mergedProducts.reduce((sum, item) => {
+    const price = priceMap.get(item.productId.toString()) || 0
+    return sum + price * item.quantity
   }, 0)
 
-  // ── Step 4: Persist (upsert) the merged cart ──
-  const result = await AddToCart.findOneAndUpdate(
-    { userId: payload.userId },
-    {
-      $set: {
-        products: mergedProducts,
-        totalPrice: calculatedTotalPrice,
-      },
-    },
-    { upsert: true, new: true, runValidators: true },
-  ).populate({
+  cart.products = mergedProducts
+  cart.totalPrice = totalPrice
+
+  await cart.save()
+
+  return cart.populate({
     path: 'products.productId',
     select: 'images title price',
   })
-
-  return result
 }
 
 // Get cart by user ID
@@ -114,7 +178,7 @@ const getCartByUserId = async (userId: string) => {
 
     // Assign cleaned values for the response
     result.products = validProducts as any
-    ;(result as any).totalPrice = newTotal
+      ; (result as any).totalPrice = newTotal
   }
 
   return result
