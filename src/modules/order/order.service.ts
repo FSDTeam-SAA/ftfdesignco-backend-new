@@ -88,6 +88,7 @@ const createOrder = async (payload: any) => {
       : 'Customer'
     const orderRegion = (populatedOrder as any).region as string
 
+    // Notify all admin (owner) users about the new order – fire-and-forget
     User.find({ role: 'owner' }, 'email')
       .lean()
       .then((admins) => {
@@ -108,6 +109,20 @@ const createOrder = async (payload: any) => {
       .catch((err) =>
         console.error('Admin order notification emails failed:', err),
       )
+
+    // Notify the customer about their order – fire-and-forget
+    if (orderUser?.email) {
+      sendEmail({
+        to: orderUser.email,
+        subject: 'Order Confirmation',
+        html: orderConfirmationTemplate({
+          customerName,
+          region: orderRegion,
+        }),
+      }).catch((err) =>
+        console.error('Customer order confirmation email failed:', err),
+      )
+    }
 
     return populatedOrder
   } catch (error) {
