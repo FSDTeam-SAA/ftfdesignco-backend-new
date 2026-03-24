@@ -8,6 +8,7 @@ import { Product } from '../product/product.model'
 import { AddToCart } from '../addToCart/addToCart.model'
 import sendEmail from '../../utils/sendEmail'
 import orderConfirmationTemplate from '../../utils/orderConfirmationTemplate'
+import customerOrderConfirmationTemplate from '../../utils/customerOrderConfirmationTemplate'
 import orderCompleteTemplate from '../../utils/orderCompleteTemplate'
 
 // Create a new order
@@ -115,9 +116,9 @@ const createOrder = async (payload: any) => {
       sendEmail({
         to: orderUser.email,
         subject: 'Order Confirmation',
-        html: orderConfirmationTemplate({
-          customerName,
-          region: orderRegion,
+        html: customerOrderConfirmationTemplate({
+          firstName: orderUser.firstName ?? 'Customer',
+          location: orderRegion,
         }),
       }).catch((err) =>
         console.error('Customer order confirmation email failed:', err),
