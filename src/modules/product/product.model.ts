@@ -1,7 +1,7 @@
 import { model, Schema } from 'mongoose'
-import { IProduct, productModel } from './product.interface'
+import { IProduct, ProductModel } from './product.interface'
 
-const productSchema = new Schema<IProduct, productModel>(
+const productSchema = new Schema<IProduct, ProductModel>(
   {
     // product.model.ts
     images: [
@@ -24,6 +24,14 @@ const productSchema = new Schema<IProduct, productModel>(
       required: true,
     },
     size: {
+      type: String,
+      required: true,
+    },
+    fit_cut: {
+      type: String,
+      required: true,
+    },
+    fabric_material: {
       type: String,
       required: true,
     },
@@ -78,4 +86,4 @@ productSchema.static(
   },
 )
 
-export const Product = model<IProduct, productModel>('Product', productSchema)
+export const Product = model<IProduct, ProductModel>('Product', productSchema)

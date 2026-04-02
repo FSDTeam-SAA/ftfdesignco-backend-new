@@ -5,7 +5,6 @@ import {
   deleteFromCloudinary,
   uploadToCloudinary,
 } from '../../utils/cloudinary'
-import { Order } from '../order/order.model'
 import { IProduct } from './product.interface'
 import { Product } from './product.model'
 

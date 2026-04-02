@@ -3,13 +3,15 @@ import catchAsync from '../../utils/catchAsync'
 import sendResponse from '../../utils/sendResponse'
 import productService from './product.service'
 
+const getUploadedFiles = (files: Express.Request['files']) => {
+  if (Array.isArray(files)) return files
+  if (files) return Object.values(files).flat()
+  return undefined
+}
+
 // Create a new product
 const createProduct = catchAsync(async (req, res) => {
-  const files = Array.isArray(req.files)
-    ? req.files
-    : req.files
-      ? Object.values(req.files).flat()
-      : undefined
+  const files = getUploadedFiles(req.files)
   const result = await productService.createProduct(req.body, files)
 
   sendResponse(res, {
@@ -66,11 +68,7 @@ const getProductById = catchAsync(async (req, res) => {
 // Update product by ID
 const updateProduct = catchAsync(async (req, res) => {
   const { id } = req.params
-  const files = Array.isArray(req.files)
-    ? req.files
-    : req.files
-      ? Object.values(req.files).flat()
-      : undefined
+  const files = getUploadedFiles(req.files)
   const result = await productService.updateProduct(
     id as string,
     req.body,

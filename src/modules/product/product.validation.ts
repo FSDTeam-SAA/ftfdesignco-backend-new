@@ -22,6 +22,12 @@ const createProductValidationSchema = z.object({
     size: z.string({
       required_error: 'Size is required',
     }),
+    fit_cut: z.string({
+      required_error: 'Fit cut is required',
+    }),
+    fabric_material: z.string({
+      required_error: 'Fabric material is required',
+    }),
     availableQuantity: z.coerce
       .number({
         required_error: 'Available quantity is required',
@@ -70,6 +76,8 @@ const updateProductValidationSchema = z.object({
     type: z.string().optional(),
     description: z.string().optional(),
     size: z.string().optional(),
+    fit_cut: z.string().optional(),
+    fabric_material: z.string().optional(),
     availableQuantity: z.coerce
       .number()
       .min(0, 'Available quantity must be at least 0')
