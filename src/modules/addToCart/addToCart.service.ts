@@ -217,13 +217,43 @@ const updateCart = async (
   return result
 }
 
-// Remove product from cart (remove entire cart)
+// Remove single product item from cart by cart-item (_id)
 const removeFromCart = async (id: string): Promise<IAddToCart | null> => {
-  const result = await AddToCart.findByIdAndDelete(id)
-  if (!result) {
-    throw new AppError('Cart not found', StatusCodes.NOT_FOUND)
+  const cart = await AddToCart.findOne({ 'products._id': id })
+
+  if (!cart) {
+    throw new AppError('Cart item not found', StatusCodes.NOT_FOUND)
   }
-  return result
+
+  cart.products = cart.products.filter(
+    (item: any) => item._id.toString() !== id,
+  )
+
+  if (cart.products.length === 0) {
+    cart.totalPrice = 0
+    await cart.save()
+
+    return cart.populate({
+      path: 'products.productId',
+      select: 'images title price',
+    })
+  }
+
+  const allIds = cart.products.map((item: any) => item.productId)
+  const allProducts = await Product.find({ _id: { $in: allIds } })
+  const priceMap = new Map(allProducts.map((p) => [p._id.toString(), p.price]))
+
+  cart.totalPrice = cart.products.reduce((sum: number, item: any) => {
+    const price = priceMap.get(item.productId.toString()) || 0
+    return sum + price * item.quantity
+  }, 0)
+
+  await cart.save()
+
+  return cart.populate({
+    path: 'products.productId',
+    select: 'images title price',
+  })
 }
 
 // Clear cart (delete all items)
