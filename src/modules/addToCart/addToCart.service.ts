@@ -81,9 +81,7 @@ import { Product } from '../product/product.model'
 //   return result
 // }
 
-
 const addToCart = async (payload: { userId: string; products: any[] }) => {
-
   // validate incoming products
   const incomingIds = payload.products.map((p) => p.productId)
 
@@ -106,41 +104,54 @@ const addToCart = async (payload: { userId: string; products: any[] }) => {
 
   const mergedProducts = [...cart.products.map((p: any) => p.toObject())]
 
+  const normalizedExistingProducts = mergedProducts.map((item) => {
+    const fallbackFromIncoming = payload.products.find(
+      (incomingItem) =>
+        incomingItem.productId.toString() === item.productId.toString() &&
+        incomingItem.size === item.size,
+    )
+
+    return {
+      ...item,
+      fit_cut: item.fit_cut ?? fallbackFromIncoming?.fit_cut ?? 'N/A',
+      fabric_material:
+        item.fabric_material ?? fallbackFromIncoming?.fabric_material ?? 'N/A',
+    }
+  })
+
   for (const incomingItem of payload.products) {
-    const index = mergedProducts.findIndex(
+    const index = normalizedExistingProducts.findIndex(
       (item) =>
-        item.productId.toString() === incomingItem.productId &&
+        item.productId.toString() === incomingItem.productId.toString() &&
         item.size === incomingItem.size &&
         item.fit_cut === incomingItem.fit_cut &&
-        item.fabric_material === incomingItem.fabric_material
+        item.fabric_material === incomingItem.fabric_material,
     )
 
     if (index === -1) {
-      mergedProducts.push({
+      normalizedExistingProducts.push({
         ...incomingItem,
         fit_cut: incomingItem.fit_cut,
         fabric_material: incomingItem.fabric_material,
       })
     } else {
-      mergedProducts[index].quantity += incomingItem.quantity
+      normalizedExistingProducts[index].quantity += incomingItem.quantity
     }
   }
 
   // recalc price
-  const allIds = mergedProducts.map((item) => item.productId)
+  const allIds = normalizedExistingProducts.map((item) => item.productId)
 
   const allProducts = await Product.find({ _id: { $in: allIds } })
 
-  const priceMap = new Map(
-    allProducts.map((p) => [p._id.toString(), p.price])
-  )
+  const priceMap = new Map(allProducts.map((p) => [p._id.toString(), p.price]))
 
-  const totalPrice = mergedProducts.reduce((sum, item) => {
+  const totalPrice = normalizedExistingProducts.reduce((sum, item) => {
     const price = priceMap.get(item.productId.toString()) || 0
     return sum + price * item.quantity
   }, 0)
 
-  cart.products = mergedProducts
+  cart.products = normalizedExistingProducts
   cart.totalPrice = totalPrice
 
   await cart.save()
@@ -184,7 +195,7 @@ const getCartByUserId = async (userId: string) => {
 
     // Assign cleaned values for the response
     result.products = validProducts as any
-      ; (result as any).totalPrice = newTotal
+    ;(result as any).totalPrice = newTotal
   }
 
   return result
