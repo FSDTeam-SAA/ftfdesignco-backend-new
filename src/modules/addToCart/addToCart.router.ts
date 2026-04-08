@@ -1,33 +1,42 @@
 import { Router } from 'express'
 import addToCartController from './addToCart.controller'
-import auth from '../../middleware/auth';
-import { USER_ROLE } from '../user/user.constant';
+import auth from '../../middleware/auth'
+import { USER_ROLE } from '../user/user.constant'
+import validateRequest from '../../middleware/validateRequest'
+import { addToCartValidation } from './addToCart.validation'
 
 const router = Router()
 
 router.post(
-    '/',
-    auth(USER_ROLE.EMPLOYER),
-    addToCartController.addToCart);
+  '/',
+  auth(USER_ROLE.EMPLOYER),
+  validateRequest(addToCartValidation.addToCartValidationSchema),
+  addToCartController.addToCart,
+)
 
 router.get(
-    '/:userId',
-    auth(USER_ROLE.OWNER, USER_ROLE.EMPLOYER),
-    addToCartController.getCartByUserId);
-
+  '/:userId',
+  auth(USER_ROLE.OWNER, USER_ROLE.EMPLOYER),
+  addToCartController.getCartByUserId,
+)
 
 router.put(
-    '/:id',
-    auth(USER_ROLE.EMPLOYER),
-    addToCartController.updateCart);
+  '/:id',
+  auth(USER_ROLE.EMPLOYER),
+  validateRequest(addToCartValidation.updateCartValidationSchema),
+  addToCartController.updateCart,
+)
 
 router.delete(
-    '/:id',
-    auth(USER_ROLE.OWNER, USER_ROLE.EMPLOYER),
-    addToCartController.removeFromCart);
+  '/:id',
+  auth(USER_ROLE.OWNER, USER_ROLE.EMPLOYER),
+  addToCartController.removeFromCart,
+)
 
 router.delete(
-    '/clear/:userId',
-    auth(USER_ROLE.EMPLOYER), addToCartController.clearCart)
+  '/clear/:userId',
+  auth(USER_ROLE.EMPLOYER),
+  addToCartController.clearCart,
+)
 
 export const addToCartRouter = router

@@ -1,4 +1,4 @@
-import { model, Schema, Types } from 'mongoose'
+import { model, Schema } from 'mongoose'
 import { IAddToCart, addToCartModel } from './addToCart.interface'
 
 const addToCartSchema = new Schema<IAddToCart, addToCartModel>(
@@ -21,6 +21,14 @@ const addToCartSchema = new Schema<IAddToCart, addToCartModel>(
           min: 1,
         },
         size: {
+          type: String,
+          required: true,
+        },
+        fit_cut: {
+          type: String,
+          required: true,
+        },
+        fabric_material: {
           type: String,
           required: true,
         },

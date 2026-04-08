@@ -14,8 +14,8 @@ async function main() {
 
     const io = new Server(httpServer, {
       cors: {
-        origin: "*",
-        methods: ["GET", "POST"],
+        origin: true,
+        // methods: ["GET", "POST", "PO"],
       },
     });
 

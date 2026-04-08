@@ -7,6 +7,8 @@ export interface IAddToCart {
     productId: Types.ObjectId
     quantity: number
     size: string
+    fit_cut: string
+    fabric_material: string
   }>
   totalPrice: number
   createdAt?: Date
@@ -24,6 +26,8 @@ interface ICartItem {
   productId: IPopulatedProduct;
   quantity: number;
   size: string;
+  fit_cut: string;
+  fabric_material: string;
 }
 
 export type addToCartModel = Model<IAddToCart> 

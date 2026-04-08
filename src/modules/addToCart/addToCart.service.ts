@@ -110,11 +110,17 @@ const addToCart = async (payload: { userId: string; products: any[] }) => {
     const index = mergedProducts.findIndex(
       (item) =>
         item.productId.toString() === incomingItem.productId &&
-        item.size === incomingItem.size
+        item.size === incomingItem.size &&
+        item.fit_cut === incomingItem.fit_cut &&
+        item.fabric_material === incomingItem.fabric_material
     )
 
     if (index === -1) {
-      mergedProducts.push(incomingItem)
+      mergedProducts.push({
+        ...incomingItem,
+        fit_cut: incomingItem.fit_cut,
+        fabric_material: incomingItem.fabric_material,
+      })
     } else {
       mergedProducts[index].quantity += incomingItem.quantity
     }
