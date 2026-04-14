@@ -7,12 +7,7 @@ import { addToCartValidation } from './addToCart.validation'
 
 const router = Router()
 
-router.post(
-  '/',
-  auth(USER_ROLE.EMPLOYER),
-  validateRequest(addToCartValidation.addToCartValidationSchema),
-  addToCartController.addToCart,
-)
+router.post('/', auth(USER_ROLE.EMPLOYER), addToCartController.addToCart)
 
 router.get(
   '/:userId',

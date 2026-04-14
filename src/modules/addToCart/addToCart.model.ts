@@ -26,11 +26,9 @@ const addToCartSchema = new Schema<IAddToCart, addToCartModel>(
         },
         fit_cut: {
           type: String,
-          required: true,
         },
         fabric_material: {
           type: String,
-          required: true,
         },
       },
     ],

@@ -18,12 +18,8 @@ const addToCartValidationSchema = z.object({
         size: z.string({
           required_error: 'Size is required',
         }),
-        fit_cut: z.string({
-          required_error: 'Fit cut is required',
-        }),
-        fabric_material: z.string({
-          required_error: 'Fabric material is required',
-        }),
+        fit_cut: z.string().optional(),
+        fabric_material: z.string().optional(),
       }),
     ),
     totalPrice: z
